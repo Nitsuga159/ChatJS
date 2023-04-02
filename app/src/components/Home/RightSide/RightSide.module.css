@@ -1,0 +1,33 @@
+.container {
+  padding: 0.5rem;
+  background-color: var(--strong-raisin-black);
+}
+
+.searchTitle {
+  font-size: 1rem;
+  margin: 0.5rem 0;
+  text-align: left;
+}
+
+.search {
+  padding: 0.3rem 0.5rem;
+  display: flex;
+  align-items: center;
+  background-color: var(--folly);
+  border-radius: 3px;
+}
+
+.input {
+  width: 100%;
+  background-color: transparent;
+  border: none;
+  outline: none;
+}
+
+.input::-webkit-input-placeholder {
+  color: rgb(202, 202, 202);
+}
+
+.searchIcon {
+  cursor: pointer;
+}

@@ -1,0 +1,124 @@
+:root {
+  font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
+  line-height: 1.5;
+
+  color-scheme: light dark;
+  color: rgba(255, 255, 255, 0.87);
+  background-color: #242424;
+
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  -webkit-text-size-adjust: 100%;
+  --titlebar-height: 35px;
+  --gray-discord: #2f3134;
+  --middle-gray-discord: #252628;
+  --shine-gray-discord: #d7d7d7;
+  --light-gray-discord: #aaaaaa;
+  --strong-gray-discord: rgb(28, 26, 28);
+  --dark-gray-discord: #121313;
+  --gray: #dcdcdc;
+  --folly: #FE4056ff;
+  --light-folly: rgb(254, 117, 133);
+  --strong-folly: rgb(28, 26, 28);
+  --dim-gray: #605F69ff;
+  --raisin-black: #2B2836ff;
+  --light-raisin-black: rgb(54, 51, 65);
+  --strong-raisin-black: rgb(35, 33, 42);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+/* Track */
+::-webkit-scrollbar-track {
+  background: var(--middle-gray-discord);
+  border-radius: 20px;
+}
+
+/* Handle */
+::-webkit-scrollbar-thumb {
+  background: var(--dark-gray-discord);
+  border-radius: 20px;
+}
+
+body {
+  margin: 0;
+  overflow: hidden;
+}
+
+#root {
+  margin: 0 auto;
+  text-align: center;
+  height: 100vh;
+}
+
+/* TITLE BAR */
+
+.titlebar {
+  height: var(--titlebar-height);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background-color: var(--gray-discord);
+}
+
+.title {
+  width: 100%;
+  height: 100%;
+  text-align: left;
+  -webkit-app-region: drag;
+  /* Allow user to drag the window using this titlebar */
+  -webkit-user-select: none;
+  /* Prevent user from selecting things */
+  user-select: none;
+}
+
+.icon {
+  height: 60%;
+  width: 40px;
+}
+
+.title-name {
+  margin: 0;
+  font-family: sans-serif;
+  font-weight: 600;
+  font-size: .9rem;
+  display: flex;
+  align-items: center;
+  height: 100%;
+  color: var(--gray);
+}
+
+.titlebar-right {
+  height: 100%;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+}
+
+.item-right {
+  height: 100%;
+  padding: 0 0.5rem;
+  display: flex;
+  align-items: center;
+  transition: background-color .15s ease;
+}
+
+.item-right:hover {
+  background-color: rgb(37, 37, 37);
+}
+
+.item-right:last-child:hover {
+  background-color: rgb(236, 52, 52);
+}
+
+.item-right>img {
+  height: 40%;
+}

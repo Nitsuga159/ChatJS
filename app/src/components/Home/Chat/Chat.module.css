@@ -1,0 +1,24 @@
+.chat-container {
+  display: flex;
+  flex-direction: column;
+  padding: 0.5rem 0;
+  background-color: var(--raisin-black);
+}
+
+.chat {
+  height: 100%;
+  overflow-y: auto;
+}
+
+.input {
+  font-family: sans-serif;
+  font-weight: 100;
+  width: 95%;
+  padding: 1rem;
+  border: none;
+  outline: none;
+  border-radius: 7px;
+  color: var(--shine-gray-discord);
+  background-color: var(--strong-folly);
+  resize: none;
+}
