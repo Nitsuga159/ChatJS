@@ -1,4 +1,4 @@
-import { app, BrowserWindow, shell, ipcMain } from "electron";
+import { app, BrowserWindow, shell, ipcMain as comunicator } from "electron";
 import { release } from "node:os";
 import { join } from "node:path";
 import { update } from "./update";
@@ -93,15 +93,14 @@ async function createWindow() {
   win.on("maximize", () => win.webContents.send("maximize"));
   win.on("unmaximize", () => win.webContents.send("restore"));
 
-  ipcMain.on("minimize", () => win.minimize());
-  ipcMain.on("restore", () => win.restore());
-  ipcMain.on("fullscreen", () => win.maximize());
-  ipcMain.on("close", () => win.close());
-  ipcMain.on("token:set", (_, value) => {
+  comunicator.on("minimize", () => win.minimize());
+  comunicator.on("restore", () => win.restore());
+  comunicator.on("fullscreen", () => win.maximize());
+  comunicator.on("close", () => win.close());
+  comunicator.on("token:set", (_, value) => {
     store.set("token", value);
   });
-  store.delete("token");
-  ipcMain.on("token:get", () => {
+  comunicator.on("token:get", () => {
     win.webContents.send("token:get", store.get("token") as string);
   });
 
@@ -134,7 +133,7 @@ app.on("activate", () => {
 });
 
 // New window example arg: new windows url
-ipcMain.handle("open-win", (_, arg) => {
+comunicator.handle("open-win", (_, arg) => {
   const childWindow = new BrowserWindow({
     webPreferences: {
       preload,
