@@ -3,10 +3,9 @@ import { AuthController } from './auth.controller';
 import { PassportModule } from '@nestjs/passport';
 import { AuthService, LocalStrategy } from './auth.service';
 import { JwtModule } from '@nestjs/jwt';
+import { UserModule } from 'src/database/user/user.module';
 
 @Module({
-  controllers: [AuthController],
-  providers: [AuthService, LocalStrategy],
   imports: [
     PassportModule.register({
       defaultStrategy: 'jwt', // Estrategia de autenticación por defecto
@@ -15,6 +14,9 @@ import { JwtModule } from '@nestjs/jwt';
     JwtModule.register({
       secret: String(process.env.JWT_SECRET),
     }),
+    UserModule,
   ],
+  controllers: [AuthController],
+  providers: [AuthService, LocalStrategy],
 })
 export class AuthModule {}

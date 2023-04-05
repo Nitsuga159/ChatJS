@@ -2,25 +2,38 @@ import { Strategy as LocalStrategyPassport } from 'passport-local';
 import { PassportStrategy } from '@nestjs/passport';
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
+import { UsersService } from 'src/database/user/user.service';
+import { User } from 'src/types/user.type';
+import { compare } from 'bcrypt';
 
 @Injectable()
 export class AuthService {
-  constructor(private jwtService: JwtService) {}
+  constructor(
+    private jwtService: JwtService,
+    private readonly userService: UsersService,
+  ) {}
 
-  async validateUser(
-    username: string,
-    password: string,
-  ): Promise<{ username: string; password: string }> {
-    if (username === 'agus' && password === '1234') {
-      return { username, password };
-    }
+  async validateUser(username: string, password: string): Promise<User> {
+    const userFounded: User | null = (await this.userService.foundUser(
+      username,
+    )) as User;
 
-    return null;
+    if (!userFounded) return null;
+
+    if (!(await compare(password, userFounded.password))) return null;
+
+    delete userFounded.password;
+
+    return userFounded;
   }
 
-  async login(user: any) {
+  async login(user: User) {
     return {
-      accessToken: this.jwtService.sign(user),
+      ...user,
+      accessToken: this.jwtService.sign(
+        { _id: user._id },
+        { secret: String(process.env.JWT_SECRET) },
+      ),
     };
   }
 }
@@ -35,7 +48,7 @@ export class LocalStrategy extends PassportStrategy(LocalStrategyPassport) {
     const user = await this.authService.validateUser(username, password);
     if (!user) {
       throw new UnauthorizedException({
-        message: 'Usuario inválido',
+        message: 'Invalid user',
         statusCode: 401,
       });
     }

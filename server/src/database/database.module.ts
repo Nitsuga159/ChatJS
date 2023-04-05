@@ -3,6 +3,7 @@ import { MongooseModule } from '@nestjs/mongoose';
 import { UserModule } from './user/user.module';
 import { GeneralChatModule } from './general-chat/general-chat.module';
 import { FriendsModule } from './friends/friends.module';
+import { CodeVerificationModule } from './code-verification/code-verification.module';
 
 @Module({
   imports: [
@@ -10,6 +11,7 @@ import { FriendsModule } from './friends/friends.module';
     UserModule,
     GeneralChatModule,
     FriendsModule,
+    CodeVerificationModule,
   ],
 })
 export class DatabaseModule {}
