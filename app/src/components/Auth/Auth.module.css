@@ -1,6 +1,36 @@
 .container {
   width: 100%;
+  height: calc(100% - var(--titlebar-height));
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  background-color: rgb(5, 4, 5);
+}
+
+.authContainer {
+  display: flex;
+  align-items: center;
+  background-color: var(--dark-gray);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.logoContainer {
+  width: 300px;
   height: 100%;
-  background-color: var(--risin-black);
-  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--raisin-black);
+}
+
+.icon {
+  width: 7rem;
+  margin-bottom: 1rem;
+}
+
+.titleLogo {
+  margin: 0;
 }

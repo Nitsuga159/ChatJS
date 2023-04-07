@@ -1,0 +1,40 @@
+.container {
+  width: 600px;
+  height: 320px;
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.title {
+  font-size: 1.4rem;
+  margin: 0;
+}
+
+.description {
+  font-family: sans-serif;
+  font-weight: 300;
+}
+
+.digits {
+  display: flex;
+  gap: 1rem;
+}
+
+.digitInput {
+  font-size: 1.3rem;
+  width: 4rem;
+  height: 5.5rem;
+  text-align: center;
+  border: none;
+  outline: none;
+  caret-color: transparent;
+  border-radius: 25%;
+  transition: all 0.3s ease;
+}
+
+.digitInput:focus {
+  background-color: var(--light-folly);
+  box-shadow: 0 0 8px 3px var(--folly);
+}

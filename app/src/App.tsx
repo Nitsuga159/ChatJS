@@ -4,11 +4,14 @@ import TitleBar from './components/TitleBar/TitleBar';
 import { ipcRenderer as comunicator } from 'electron';
 import { useDispatch, useSelector } from 'react-redux';
 import { AppDispatch } from './redux/store';
-import { loginUser, notLoginUser } from './actions/user';
+import { loginWithToken, logout } from './actions/user';
 import { Route, Routes, useNavigate, NavigateFunction } from 'react-router-dom';
 import { InitialState } from './types/initialState.type';
 import { User } from './types/user.type';
 import Auth from './components/Auth/Auth';
+import axios from 'axios';
+
+axios.defaults.baseURL = process.env.REACT_APP_BACKEND || "http://localhost:3070";
 
 function App() {
   const user: User = useSelector((state: InitialState) => state.user);
@@ -19,8 +22,8 @@ function App() {
     comunicator.on("token:get", (_, data) => {
       dispatch(
         typeof data === 'string' ?
-          loginUser(data) :
-          notLoginUser()
+          loginWithToken(data) :
+          logout()
       );
     });
 

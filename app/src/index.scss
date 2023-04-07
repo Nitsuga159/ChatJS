@@ -16,8 +16,8 @@
   --middle-gray-discord: #252628;
   --shine-gray-discord: #d7d7d7;
   --light-gray-discord: #aaaaaa;
-  --strong-gray-discord: rgb(28, 26, 28);
-  --dark-gray-discord: #121313;
+  --strong-gray: rgb(28, 26, 28);
+  --dark-gray: #121313;
   --gray: #dcdcdc;
   --folly: #FE4056ff;
   --light-folly: rgb(254, 117, 133);
@@ -44,13 +44,12 @@
 
 /* Handle */
 ::-webkit-scrollbar-thumb {
-  background: var(--dark-gray-discord);
+  background: var(--dark-gray);
   border-radius: 20px;
 }
 
 body {
   margin: 0;
-  overflow: hidden;
 }
 
 #root {
