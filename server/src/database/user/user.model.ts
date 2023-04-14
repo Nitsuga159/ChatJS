@@ -1,6 +1,7 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { IsBoolean, IsInt, IsString } from 'class-validator';
 import { Document } from 'mongoose';
+import { Colors } from './user.type';
 
 export type UserDocument = User & Document;
 
@@ -24,8 +25,8 @@ export class User {
   @Prop()
   photo: string;
 
-  @Prop({ required: true, default: false })
-  connected: boolean;
+  @Prop({ enum: Object.values(Colors), default: Colors.BLUE })
+  color: string;
 }
 
 export const UserSchema = SchemaFactory.createForClass(User);

@@ -11,6 +11,14 @@ export class UsersService {
   ) {}
 
   async create(user: User): Promise<User> {
+    const findUser = this.userModel.findOne({ mail: user.mail }).exec();
+
+    if (findUser)
+      throw new HttpException(
+        'There is a user with those email',
+        HttpStatus.BAD_REQUEST,
+      );
+
     const createdUser = new this.userModel({
       ...user,
       password: await hash(user.password, 10),
@@ -20,13 +28,18 @@ export class UsersService {
     return await createdUser.save();
   }
 
-  async foundUser(username: string): Promise<User | null> {
-    return (
-      await this.userModel
-        .findOne({ username })
-        .select('username password mail habilited connected photo')
-        .exec()
-    ).toObject();
+  async foundUser(data: {
+    mail?: string;
+    username?: string;
+  }): Promise<User | null> {
+    if (!data.mail && !data.username) return null;
+
+    const user = await this.userModel
+      .findOne(data)
+      .select('username password mail habilited connected photo color')
+      .exec();
+
+    return user ? user.toObject() : null;
   }
 
   async findUsers(page: number): Promise<User[]> {

@@ -8,6 +8,7 @@ import {
 } from './code-verification.model';
 import { MailService } from 'src/mail/mail.service';
 import { JwtModule } from '@nestjs/jwt';
+import { UserModule } from '../user/user.module';
 
 @Module({
   imports: [
@@ -15,6 +16,7 @@ import { JwtModule } from '@nestjs/jwt';
       { name: CodeVerification.name, schema: CodeVerificationSchema },
     ]),
     JwtModule,
+    UserModule,
   ],
   controllers: [CodeVerificationController],
   providers: [CodeVerificationService, MailService],

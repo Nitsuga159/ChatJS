@@ -4,6 +4,7 @@ import { UserModule } from './user/user.module';
 import { GeneralChatModule } from './general-chat/general-chat.module';
 import { FriendsModule } from './friends/friends.module';
 import { CodeVerificationModule } from './code-verification/code-verification.module';
+import { ChatModule } from './chat/chat.module';
 
 @Module({
   imports: [
@@ -12,6 +13,7 @@ import { CodeVerificationModule } from './code-verification/code-verification.mo
     GeneralChatModule,
     FriendsModule,
     CodeVerificationModule,
+    ChatModule,
   ],
 })
 export class DatabaseModule {}
