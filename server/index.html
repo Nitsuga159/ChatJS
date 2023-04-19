@@ -9,19 +9,14 @@
   <body>
     <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
     <script>
-      var socket = window.io('http://localhost:3001/test');
+      var socket = io('http://localhost:4040/chat?id=643d88ad5080ee3e0028a04e');
 
       socket.emit('events', 3, (e) => console.log('eee', e));
 
+      socket.on('connect', () => console.log('holaa'));
+
       socket.on('activate', (we) => console.log('activate', we));
-      socket.on('activate', (we) => console.log('activate2', we));
-
-      var socket2 = window.io('http://localhost:3001/xd');
-
-      socket2.emit('events', 3, (e) => console.log('eee', e));
-
-      socket2.on('activate', (we) => console.log('activate', we));
-      socket2.on('activate', (we) => console.log('activate2', we));
+      socket.on('WS_MESSAGE_TO_ONE', (we) => console.log('acá yaaaaaa', we));
     </script>
   </body>
 </html>
