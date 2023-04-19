@@ -11,7 +11,7 @@ export class UsersService {
   ) {}
 
   async create(user: User): Promise<User> {
-    const findUser = this.userModel.findOne({ mail: user.mail }).exec();
+    const findUser = await this.userModel.findOne({ mail: user.mail }).exec();
 
     if (findUser)
       throw new HttpException(
@@ -34,10 +34,7 @@ export class UsersService {
   }): Promise<User | null> {
     if (!data.mail && !data.username) return null;
 
-    const user = await this.userModel
-      .findOne(data)
-      .select('username password mail habilited connected photo color')
-      .exec();
+    const user = await this.userModel.findOne(data).exec();
 
     return user ? user.toObject() : null;
   }
