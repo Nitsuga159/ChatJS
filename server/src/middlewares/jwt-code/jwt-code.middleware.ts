@@ -1,15 +1,15 @@
 import {
-  Injectable,
-  HttpException,
-  HttpStatus,
   CanActivate,
   ExecutionContext,
+  HttpException,
+  HttpStatus,
+  Injectable,
 } from '@nestjs/common';
 import { Observable } from 'rxjs';
 import { verify } from 'jsonwebtoken';
 
 @Injectable()
-export class JwtMiddleware implements CanActivate {
+export class JwtMailCodeMiddleware implements CanActivate {
   canActivate(
     context: ExecutionContext,
   ): boolean | Promise<boolean> | Observable<boolean> {
@@ -17,16 +17,14 @@ export class JwtMiddleware implements CanActivate {
     const authHeader = req.headers.authorization;
 
     if (!authHeader || !authHeader.startsWith('Bearer '))
-      throw new HttpException('Invalid token', HttpStatus.UNAUTHORIZED);
+      throw new HttpException('Invalid mail token', HttpStatus.UNAUTHORIZED);
 
     const token = authHeader.split(' ')[1];
 
     try {
-      const user = verify(token, String(process.env.JWT_SECRET));
-
-      req.user = user;
+      verify(token, String(process.env.JWT_MAIL_SECRET));
     } catch (e: any) {
-      throw new HttpException('Invalid token', HttpStatus.NOT_ACCEPTABLE);
+      throw new HttpException('Invalid mail token', HttpStatus.NOT_ACCEPTABLE);
     }
 
     return true;
