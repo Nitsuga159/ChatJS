@@ -1,54 +1,75 @@
-import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
+import { Injectable } from '@nestjs/common';
+import { Types } from 'mongoose';
 import {
-  NewNotification,
   Notification,
-} from '../../database/notification-model/notification-model';
-import { SeenNotification } from '../../database/notification-model/notification-model.type';
-import { Model, Types } from 'mongoose';
-import { UserModelService } from 'src/database/user-model/user-model.service';
+  NotificationDocument,
+} from 'src/database/notification-model/notification-model';
+import { NotificationModelService } from 'src/database/notification-model/notification-model.service';
+import { PER_PAGE_NOTIFICATIONS } from 'src/database/notification-model/notification-model.type';
 import { Ws } from 'src/ws/ws.gateway';
+import { sign } from 'jsonwebtoken';
 import WS_EVENTS from 'src/ws/ws.type';
+import ENVS from 'src/envs';
 
 @Injectable()
 export class NotificationService {
   constructor(
-    @InjectModel(Notification.name)
-    private readonly notificationModel: Model<Notification>,
-    private readonly userService: UserModelService,
+    private readonly notificationModelService: NotificationModelService,
     private readonly ws: Ws,
   ) {}
 
-  async createNotification(userId: string, { target, type }: NewNotification) {
-    const foundedUser = await this.userService.findById(
-      new Types.ObjectId(userId),
-    );
+  async find(
+    userId: Types.ObjectId,
+    page: string,
+  ): Promise<{ continue: boolean; results: NotificationDocument[] }> {
+    const currentPage = Number.parseInt(page);
 
-    if (!foundedUser)
-      throw new HttpException('Invalid User', HttpStatus.BAD_REQUEST);
+    const userNotifications: NotificationDocument[] =
+      await this.notificationModelService.find(
+        userId,
+        isNaN(currentPage) || currentPage < 1 ? 0 : currentPage - 1,
+      );
 
-    const notificationUser = await this.notificationModel.findOneAndUpdate(
-      { userId },
-      { $setOnInsert: { userId } },
-      { upsert: true, new: true },
-    );
+    return {
+      continue: userNotifications.length === PER_PAGE_NOTIFICATIONS,
+      results: userNotifications,
+    };
+  }
 
-    const length = notificationUser.notifications.push({ target, type });
+  async findById(
+    notificationId: Types.ObjectId,
+  ): Promise<NotificationDocument> {
+    const notificationDocument: NotificationDocument =
+      await this.notificationModelService.findById(notificationId);
 
-    await notificationUser.save();
+    if (!notificationDocument) throw 'Invalid notification id';
 
-    const { notifications } = await notificationUser.populate(
-      'notifications.target',
-    );
+    return notificationDocument;
+  }
+
+  async create(
+    data: any,
+    toNotification: Omit<Notification, 'readed' | 'token'>,
+  ): Promise<boolean> {
+    const token = sign(data, ENVS.JWT_NOTIFICATION_SECRET);
+
+    const notification: NotificationDocument =
+      await this.notificationModelService.create({ ...toNotification, token });
 
     this.ws.emitToOne(
-      userId,
-      WS_EVENTS.NOTIFICATION,
-      notifications[length - 1],
+      toNotification.destined,
+      WS_EVENTS.NEW_NOTIFICATION,
+      notification,
     );
 
     return true;
   }
 
-  async seenNotification({}: SeenNotification) {}
+  async count(destined: Types.ObjectId): Promise<{ count: number }> {
+    return await this.notificationModelService.count(destined);
+  }
+
+  async readed(ids: Types.ObjectId[], destined: Types.ObjectId): Promise<void> {
+    await this.notificationModelService.readed(ids, destined);
+  }
 }

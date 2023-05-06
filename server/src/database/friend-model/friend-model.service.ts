@@ -1,8 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { Friend, FriendDocument } from './friend-model';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
-import { PER_PAGE_FRIEND } from './friend-model.type';
+import { Model, Types } from 'mongoose';
+import { PER_EXTEND_PAGE_FRIEND, PER_PAGE_FRIEND } from './friend-model.type';
 
 @Injectable()
 export class FriendModelService {
@@ -11,7 +11,7 @@ export class FriendModelService {
     private readonly friendModel: Model<FriendDocument>,
   ) {}
 
-  async find(userId: string, page: number): Promise<FriendDocument[]> {
+  async find(userId: Types.ObjectId, page: number): Promise<FriendDocument[]> {
     const skip = page * PER_PAGE_FRIEND;
 
     return await this.friendModel
@@ -22,7 +22,30 @@ export class FriendModelService {
       .exec();
   }
 
-  async findOne(user1: string, user2: string): Promise<FriendDocument | null> {
+  async extendsFind(
+    userId: Types.ObjectId,
+    page: number,
+  ): Promise<Types.ObjectId[]> {
+    const skip = page * PER_EXTEND_PAGE_FRIEND;
+
+    const friends: FriendDocument[] = await this.friendModel
+      .find(
+        { $or: [{ user1: userId }, { user2: userId }] },
+        { __v: 0, _id: 0, haveChat: 0 },
+      )
+      .skip(skip)
+      .limit(PER_EXTEND_PAGE_FRIEND)
+      .exec();
+
+    return friends.map(({ user1, user2 }) =>
+      !user1.equals(userId) ? user1 : user2,
+    );
+  }
+
+  async findOne(
+    user1: Types.ObjectId,
+    user2: Types.ObjectId,
+  ): Promise<FriendDocument | null> {
     return await this.friendModel.findOne({
       $or: [
         { user1, user2 },
@@ -31,7 +54,7 @@ export class FriendModelService {
     });
   }
 
-  async findById(id: string): Promise<FriendDocument | null> {
+  async findById(id: Types.ObjectId): Promise<FriendDocument | null> {
     return await this.friendModel.findById(id);
   }
 
@@ -39,7 +62,10 @@ export class FriendModelService {
     return await this.friendModel.findOne(data);
   }
 
-  async add(user1: string, user2: string): Promise<FriendDocument | null> {
+  async add(
+    user1: Types.ObjectId,
+    user2: Types.ObjectId,
+  ): Promise<FriendDocument | null> {
     const isFriend: FriendDocument | null = await this.findOne(user1, user2);
 
     if (isFriend) return null;
@@ -53,7 +79,7 @@ export class FriendModelService {
     return addedFriend;
   }
 
-  async activeChat(id: string): Promise<void> {
+  async activeChat(id: Types.ObjectId): Promise<void> {
     const friendDocument = await this.findById(id);
 
     friendDocument.haveChat = true;

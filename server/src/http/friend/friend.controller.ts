@@ -10,6 +10,8 @@ import {
 } from '@nestjs/common';
 import { UserMiddleware } from '../../database/user-model/user-model.middleware';
 import { FriendService } from './friend.service';
+import { NotificationMiddleware } from 'src/database/notification-model/notification-model.middleware';
+import { FriendDocument } from 'src/database/friend-model/friend-model';
 
 @Controller('friend')
 @UseGuards(UserMiddleware)
@@ -17,7 +19,9 @@ export class FriendController {
   constructor(private readonly friendService: FriendService) {}
 
   @Get()
-  async get(@Req() req: any) {
+  async get(
+    @Req() req: any,
+  ): Promise<{ continue: boolean; results: FriendDocument[] }> {
     try {
       return await this.friendService.find(req.user._id, req.query.page);
     } catch (e) {
@@ -28,10 +32,14 @@ export class FriendController {
     }
   }
 
-  @Post(':user2')
-  async add(@Param('user2') user2: string, @Req() req: any) {
+  @Post()
+  @UseGuards(NotificationMiddleware)
+  async add(@Req() req: any) {
     try {
-      return await this.friendService.add(req.user._id, user2);
+      return await this.friendService.add(
+        req.user._id,
+        req.notification.invitationId,
+      );
     } catch (e) {
       throw new HttpException(
         `Error to add friend: ${e}`,

@@ -2,37 +2,41 @@ import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document, Types } from 'mongoose';
 import { User } from '../user-model/user-model';
 import { NotificationType } from './notification-model.type';
+import { sign } from 'jsonwebtoken';
+import ENVS from 'src/envs';
 
 export type NotificationDocument = Notification & Document;
 
 @Schema()
-export class NewNotification {
+export class Notification extends Document {
   @Prop({ type: Types.ObjectId, ref: User.name, required: true })
-  target: string;
+  sender: Types.ObjectId;
 
-  @Prop({ enum: Object.values(NotificationType), required: true })
+  @Prop({ type: Types.ObjectId, ref: User.name, required: true })
+  destined: Types.ObjectId;
+
+  @Prop({ type: Types.ObjectId, required: true })
+  invitationId: Types.ObjectId;
+
+  @Prop({ type: String, enum: NotificationType })
   type: NotificationType;
 
-  @Prop({ type: Date, default: Date.now })
-  date?: Date;
-
   @Prop({ type: Boolean, default: false })
-  seen?: boolean;
-}
+  readed: boolean;
 
-export const NewNotificationSchema =
-  SchemaFactory.createForClass(NewNotification);
-
-@Schema()
-export class Notification {
-  @Prop({ type: Types.ObjectId, unique: true, ref: User.name, required: true })
-  userId: string;
-
-  @Prop({
-    type: [NewNotificationSchema],
-    default: [],
-  })
-  notifications: NewNotification[];
+  get token(): string {
+    return sign(
+      { invitationId: this.invitationId, id: this._id, type: this.type },
+      ENVS.JWT_NOTIFICATION_SECRET,
+    );
+  }
 }
 
 export const NotificationSchema = SchemaFactory.createForClass(Notification);
+
+NotificationSchema.set('toJSON', {
+  virtuals: true,
+  transform: (doc, ret) => {
+    delete ret._id;
+  },
+});

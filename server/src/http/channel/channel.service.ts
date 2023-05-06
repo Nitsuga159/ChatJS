@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { Types, isValidObjectId } from 'mongoose';
 import { ChannelModelService } from 'src/database/channel-model/channel-model.service';
 import { ChannelDocument } from 'src/database/channel-model/channel.model';
+import { NotificationModelService } from 'src/database/notification-model/notification-model.service';
 import { UserModelService } from 'src/database/user-model/user-model.service';
 import { Ws } from 'src/ws/ws.gateway';
 import WS_EVENTS from 'src/ws/ws.type';
@@ -50,12 +51,13 @@ export class ChannelService {
   ): Promise<void> {
     await this.channelModelService.addParticipant(channelId, userId);
 
-    const [{ participants }, user] = await Promise.all([
+    const [channel, user] = await Promise.all([
       this.channelModelService.findById(channelId),
       this.userModelService.findById(userId),
     ]);
 
-    this.ws.emitToGroup(participants, WS_EVENTS.ADD_PARTICIPANT, user);
+    this.ws.emitToGroup(channel.participants, WS_EVENTS.ADD_PARTICIPANT, user);
+    this.ws.emitToOne(userId, WS_EVENTS.NEW_CHANNEL, channel);
   }
 
   async deleteParticipant(channelDocument: ChannelDocument, userId: string) {

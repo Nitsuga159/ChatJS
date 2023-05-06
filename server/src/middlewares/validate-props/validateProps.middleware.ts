@@ -6,10 +6,9 @@ import {
   ExecutionContext,
 } from '@nestjs/common';
 import { Observable } from 'rxjs';
-import { Props } from './validateProps.type';
 
 export default function validateProps(
-  props: Props,
+  props: string[],
   keyObject: string,
   isForced: boolean,
   keyName?: string,
@@ -57,7 +56,7 @@ export default function validateProps(
       }
     }
 
-    haveAllProps(keys: string[], props: Props): boolean {
+    haveAllProps(keys: string[], props: string[]): boolean {
       for (let prop of props) if (!keys.includes(prop)) return false;
 
       return true;

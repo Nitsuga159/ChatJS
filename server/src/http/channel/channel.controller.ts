@@ -67,10 +67,11 @@ export class ChannelController {
   @Post('add-participant')
   @UseGuards(NotificationMiddleware)
   async addParticipant(@Req() req: any): Promise<void> {
-    const { channelId, userId } = req.notification;
-
     try {
-      return this.channelService.addParticipant(channelId, userId);
+      return this.channelService.addParticipant(
+        req.notification.invitationId,
+        req.user._id,
+      );
     } catch (e: any) {
       throw new HttpException(
         `Error to add a participant: ${e}`,

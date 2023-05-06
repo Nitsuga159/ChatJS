@@ -6,3 +6,4 @@ export interface FriendType extends Friend {
 }
 
 export const PER_PAGE_FRIEND: number = 15;
+export const PER_EXTEND_PAGE_FRIEND: number = 300;

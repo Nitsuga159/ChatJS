@@ -7,6 +7,7 @@ import {
 } from '@nestjs/common';
 import { Observable } from 'rxjs';
 import { verify } from 'jsonwebtoken';
+import ENVS from 'src/envs';
 
 @Injectable()
 export class JwtMailCodeMiddleware implements CanActivate {
@@ -22,7 +23,7 @@ export class JwtMailCodeMiddleware implements CanActivate {
     const token = authHeader.split(' ')[1];
 
     try {
-      verify(token, String(process.env.JWT_MAIL_SECRET));
+      verify(token, ENVS.JWT_MAIL_SECRET);
     } catch (e: any) {
       throw new HttpException('Invalid mail token', HttpStatus.NOT_ACCEPTABLE);
     }

@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { createTransport } from 'nodemailer';
 import Mail from 'nodemailer/lib/mailer';
+import ENVS from 'src/envs';
 
 @Injectable()
 export class MailService {
@@ -11,8 +12,8 @@ export class MailService {
       // Configura tus credenciales de email y SMTP aquí
       service: 'gmail',
       auth: {
-        user: process.env.MAIL_ADDRESS as string,
-        pass: process.env.MAIL_PASSWORD as string,
+        user: ENVS.MAIL_ADDRESS,
+        pass: ENVS.MAIL_PASSWORD,
       },
     });
   }

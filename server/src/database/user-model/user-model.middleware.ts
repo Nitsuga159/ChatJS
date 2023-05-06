@@ -7,6 +7,7 @@ import {
 } from '@nestjs/common';
 import { verify } from 'jsonwebtoken';
 import { UserModelService } from './user-model.service';
+import ENVS from 'src/envs';
 
 @Injectable()
 export class UserMiddleware implements CanActivate {
@@ -22,7 +23,7 @@ export class UserMiddleware implements CanActivate {
 
       const token = authHeader.split(' ')[1];
 
-      const { _id }: any = verify(token, String(process.env.JWT_USER_SECRET));
+      const { _id }: any = verify(token, ENVS.JWT_USER_SECRET);
 
       const user: any = await this.userService.findById(_id);
 

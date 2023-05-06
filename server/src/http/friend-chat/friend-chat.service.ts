@@ -20,7 +20,7 @@ export class FriendChatService {
   ) {}
 
   async get(
-    friendId: string,
+    friendId: Types.ObjectId,
     page: string,
   ): Promise<{ continue: boolean; results: FriendChatDocument[] }> {
     let currentPage = Number.parseInt(page);
@@ -36,26 +36,25 @@ export class FriendChatService {
     };
   }
 
-  async count(friendId: string, userId: string): Promise<{ count: number }> {
+  async count(
+    friendId: Types.ObjectId,
+    userId: Types.ObjectId,
+  ): Promise<{ count: number }> {
     return await this.friendChatModelService.count(friendId, userId);
   }
 
-  async add(friendId: string, message: MessageType): Promise<void> {
+  async add(friendId: Types.ObjectId, message: MessageType): Promise<void> {
     const createdMessage: FriendChatDocument =
       await this.friendChatModelService.add(friendId, message);
     const { user1, user2 } = await this.friendModelService.findById(friendId);
 
-    this.ws.emitToGroup(
-      [String(user1), String(user2)],
-      WS_EVENTS.NEW_MESSAGE,
-      createdMessage,
-    );
+    this.ws.emitToGroup([user1, user2], WS_EVENTS.NEW_MESSAGE, createdMessage);
   }
 
   async addReaded(
-    ids: string[],
+    ids: Types.ObjectId[],
     friendDocument: FriendDocument,
-    userId: string,
+    userId: Types.ObjectId,
   ): Promise<void> {
     await this.friendChatModelService.addReaded(
       ids,
@@ -65,19 +64,15 @@ export class FriendChatService {
   }
 
   async delete(
-    ids: string[],
+    ids: Types.ObjectId[],
     friendDocument: FriendDocument,
-    userId: string,
+    userId: Types.ObjectId,
   ): Promise<void> {
     const idsMessages: Types.ObjectId[] =
       await this.friendChatModelService.delete(ids, friendDocument._id, userId);
 
     const { user1, user2 } = friendDocument;
 
-    this.ws.emitToGroup(
-      [String(user1), String(user2)],
-      WS_EVENTS.DELETED_MESSAGE,
-      idsMessages,
-    );
+    this.ws.emitToGroup([user1, user2], WS_EVENTS.DELETED_MESSAGE, idsMessages);
   }
 }

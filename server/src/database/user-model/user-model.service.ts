@@ -29,7 +29,11 @@ export class UserModelService {
   }
 
   async findById(id: Types.ObjectId): Promise<UserDocument | null> {
-    return await this.userModel.findById(id, { __v: 0, password: 0 });
+    return await this.userModel.findById(id, {
+      __v: 0,
+      password: 0,
+      habilited: 0,
+    });
   }
 
   async findByIdAndUpdate(

@@ -6,9 +6,15 @@ import {
   Injectable,
 } from '@nestjs/common';
 import { verify } from 'jsonwebtoken';
+import ENVS from 'src/envs';
+import { NotificationModelService } from './notification-model.service';
 
 @Injectable()
 export class NotificationMiddleware implements CanActivate {
+  constructor(
+    private readonly notificationModelService: NotificationModelService,
+  ) {}
+
   async canActivate(context: ExecutionContext): Promise<boolean> {
     try {
       const req: any = context.switchToHttp().getRequest();
@@ -18,8 +24,10 @@ export class NotificationMiddleware implements CanActivate {
 
       const notification: any = verify(
         notificationToken,
-        String(process.env.JWT_NOTIFICATION_SECRET),
+        ENVS.JWT_NOTIFICATION_SECRET,
       );
+
+      await this.notificationModelService.delete(notification.id);
 
       req.notification = notification;
 

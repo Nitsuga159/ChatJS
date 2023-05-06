@@ -18,6 +18,7 @@ import {
   PROPS_NEW_MESSAGE,
   PROPS_READ_MESSAGES,
 } from 'src/database/types/message.type';
+import { FriendChatDocument } from 'src/database/friend-chat-model/friend-chat-model';
 
 @Controller('friend-chat')
 @UseGuards(UserMiddleware, FriendMiddleware)
@@ -25,7 +26,9 @@ export class FriendChatController {
   constructor(private readonly friendChatService: FriendChatService) {}
 
   @Get('message/:friendId')
-  async get(@Req() req: any) {
+  async get(
+    @Req() req: any,
+  ): Promise<{ continue: boolean; results: FriendChatDocument[] }> {
     try {
       return await this.friendChatService.get(
         req.friendDocument._id,
@@ -40,7 +43,7 @@ export class FriendChatController {
   }
 
   @Get('count/:friendId')
-  async count(@Req() req: any) {
+  async count(@Req() req: any): Promise<{ count: number }> {
     try {
       return await this.friendChatService.count(
         req.friendDocument._id,

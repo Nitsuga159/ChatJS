@@ -11,7 +11,10 @@ export class FriendChatModelService {
     private readonly friendChatModel: Model<FriendChatDocument>,
   ) {}
 
-  async get(friendId: string, page: number): Promise<FriendChatDocument[]> {
+  async get(
+    friendId: Types.ObjectId,
+    page: number,
+  ): Promise<FriendChatDocument[]> {
     const skip: number = page * PER_PAGE_MESSAGES;
 
     return await this.friendChatModel
@@ -24,7 +27,7 @@ export class FriendChatModelService {
   }
 
   async add(
-    friendId: string,
+    friendId: Types.ObjectId,
     message: MessageType,
   ): Promise<FriendChatDocument> {
     let createdMessage = new this.friendChatModel({ friendId, message });
@@ -36,7 +39,10 @@ export class FriendChatModelService {
     return createdMessage;
   }
 
-  async count(friendId: string, userId: string): Promise<{ count: number }> {
+  async count(
+    friendId: Types.ObjectId,
+    userId: Types.ObjectId,
+  ): Promise<{ count: number }> {
     return {
       count: await this.friendChatModel.countDocuments({
         friendId,
@@ -47,9 +53,9 @@ export class FriendChatModelService {
   }
 
   async addReaded(
-    ids: string[],
-    friendId: string,
-    userId: string,
+    ids: Types.ObjectId[],
+    friendId: Types.ObjectId,
+    userId: Types.ObjectId,
   ): Promise<void> {
     await this.friendChatModel.updateMany(
       { _id: { $in: ids }, 'message.readed': { $ne: userId }, friendId },
@@ -58,9 +64,9 @@ export class FriendChatModelService {
   }
 
   async delete(
-    ids: string[],
-    friendId: string,
-    userId: string,
+    ids: Types.ObjectId[],
+    friendId: Types.ObjectId,
+    userId: Types.ObjectId,
   ): Promise<Types.ObjectId[]> {
     const query = {
       _id: { $in: ids },

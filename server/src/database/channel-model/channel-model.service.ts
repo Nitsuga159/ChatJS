@@ -17,7 +17,7 @@ export class ChannelModelService {
   }
 
   async findById(channelId: Types.ObjectId): Promise<ChannelDocument | null> {
-    return await this.channelModel.findById(channelId).exec();
+    return await this.channelModel.findById(channelId, { __v: 0 }).exec();
   }
 
   async findByAdmin(

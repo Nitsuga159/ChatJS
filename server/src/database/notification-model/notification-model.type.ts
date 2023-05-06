@@ -3,9 +3,6 @@ export enum NotificationType {
   CHANNEL = 'CHANNEL',
 }
 
-export type SeenNotification = {
-  userId: string;
-  notificationsIds: string[];
-};
-
-export const PROPS_NEW_NOTIFICATION = ['target', 'type'];
+export const PER_PAGE_NOTIFICATIONS = 15;
+export const PROPS_READ_NOTIFICATION: string[] = ['ids'];
+export const PROPS_NEW_NOTIFICATION: string[] = ['destined', 'type'];
