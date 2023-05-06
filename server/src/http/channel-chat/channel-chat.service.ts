@@ -11,6 +11,8 @@ import {
 import { Ws } from 'src/ws/ws.gateway';
 import WS_EVENTS from 'src/ws/ws.type';
 
+const ObjectId = Types.ObjectId;
+
 @Injectable()
 export class ChannelChatService {
   constructor(
@@ -47,10 +49,13 @@ export class ChannelChatService {
   }
 
   async add(
-    channelId: Types.ObjectId,
-    chatId: Types.ObjectId,
+    channelId: string | Types.ObjectId,
+    chatId: string | Types.ObjectId,
     message: MessageType,
   ): Promise<void> {
+    channelId = new ObjectId(channelId.toString());
+    chatId = new ObjectId(chatId.toString());
+
     const createdMessage: ChannelChatDocument =
       await this.channelChatModelService.add(channelId, chatId, message);
     const { participants } = await this.channelModelService.findById(channelId);
@@ -61,9 +66,12 @@ export class ChannelChatService {
   async addReaded(
     ids: string[],
     channelDocument: ChannelDocument,
-    chatId: Types.ObjectId,
-    userId: Types.ObjectId,
+    chatId: string | Types.ObjectId,
+    userId: string | Types.ObjectId,
   ): Promise<void> {
+    chatId = new ObjectId(chatId.toString());
+    userId = new ObjectId(userId.toString());
+
     await this.channelChatModelService.addReaded(
       ids,
       channelDocument._id,
@@ -75,9 +83,12 @@ export class ChannelChatService {
   async delete(
     ids: string[],
     channelDocument: ChannelDocument,
-    chatId: Types.ObjectId,
-    userId: Types.ObjectId,
+    chatId: string | Types.ObjectId,
+    userId: string | Types.ObjectId,
   ): Promise<void> {
+    chatId = new ObjectId(chatId.toString());
+    userId = new ObjectId(userId.toString());
+
     const idsMessages = await this.channelChatModelService.delete(
       ids,
       channelDocument,

@@ -2,7 +2,11 @@ import { Injectable } from '@nestjs/common';
 import { Friend, FriendDocument } from './friend-model';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
-import { PER_EXTEND_PAGE_FRIEND, PER_PAGE_FRIEND } from './friend-model.type';
+import {
+  FriendResponse,
+  PER_EXTEND_PAGE_FRIEND,
+  PER_PAGE_FRIEND,
+} from './friend-model.type';
 
 @Injectable()
 export class FriendModelService {
@@ -11,15 +15,23 @@ export class FriendModelService {
     private readonly friendModel: Model<FriendDocument>,
   ) {}
 
-  async find(userId: Types.ObjectId, page: number): Promise<FriendDocument[]> {
+  async find(userId: Types.ObjectId, page: number): Promise<FriendResponse[]> {
     const skip = page * PER_PAGE_FRIEND;
 
-    return await this.friendModel
-      .find({ $or: [{ user1: userId }, { user2: userId }] }, { __v: 0 })
+    const friends: FriendDocument[] = await this.friendModel
+      .find(
+        { haveChat: true, $or: [{ user1: userId }, { user2: userId }] },
+        { __v: 0 },
+      )
       .populate('user1 user2', 'username photo color')
       .skip(skip)
       .limit(PER_PAGE_FRIEND)
       .exec();
+
+    return friends.map(({ _id, user1, user2 }) => ({
+      _id,
+      friend: !user1.equals(userId) ? user1 : user2,
+    }));
   }
 
   async extendsFind(
@@ -77,13 +89,5 @@ export class FriendModelService {
     delete addedFriend.__v;
 
     return addedFriend;
-  }
-
-  async activeChat(id: Types.ObjectId): Promise<void> {
-    const friendDocument = await this.findById(id);
-
-    friendDocument.haveChat = true;
-
-    await friendDocument.save();
   }
 }

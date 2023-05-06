@@ -7,6 +7,8 @@ import { UserModelService } from 'src/database/user-model/user-model.service';
 import { Ws } from 'src/ws/ws.gateway';
 import WS_EVENTS from 'src/ws/ws.type';
 
+const ObjectId = Types.ObjectId;
+
 @Injectable()
 export class ChannelService {
   constructor(
@@ -21,10 +23,12 @@ export class ChannelService {
 
   async create(data: {
     name: string;
-    admin: Types.ObjectId;
+    admin: string | Types.ObjectId;
     description?: string;
     photo?: string;
   }): Promise<ChannelDocument> {
+    data.admin = new ObjectId(data.admin.toString());
+
     const countUserChannels = await this.channelModelService.count(data.admin);
 
     if (countUserChannels === 5) throw 'Channel limit exceeded';
@@ -46,9 +50,12 @@ export class ChannelService {
   }
 
   async addParticipant(
-    channelId: Types.ObjectId,
-    userId: Types.ObjectId,
+    channelId: string | Types.ObjectId,
+    userId: string | Types.ObjectId,
   ): Promise<void> {
+    channelId = new ObjectId(channelId.toString());
+    userId = new ObjectId(userId.toString());
+
     await this.channelModelService.addParticipant(channelId, userId);
 
     const [channel, user] = await Promise.all([
@@ -60,10 +67,15 @@ export class ChannelService {
     this.ws.emitToOne(userId, WS_EVENTS.NEW_CHANNEL, channel);
   }
 
-  async deleteParticipant(channelDocument: ChannelDocument, userId: string) {
+  async deleteParticipant(
+    channelDocument: ChannelDocument,
+    userId: string | Types.ObjectId,
+  ) {
+    userId = new ObjectId(userId.toString());
+
     await this.channelModelService.deleteParticipant(
       channelDocument._id,
-      new Types.ObjectId(userId),
+      userId,
     );
 
     this.ws.emitToGroup(

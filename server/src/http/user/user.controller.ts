@@ -7,6 +7,7 @@ import {
   Param,
   Post,
   Put,
+  Query,
   Req,
   UseGuards,
   UsePipes,
@@ -14,7 +15,7 @@ import {
 } from '@nestjs/common';
 import { UsersService } from './user.service';
 import { User, UserDocument } from '../../database/user-model/user-model';
-import { JwtMailCodeMiddleware } from 'src/middlewares/jwt-code/jwt-code.middleware';
+import { CodeVerificationMiddleware } from 'src/database/code-verification-model/code-verification-model.middleware';
 import validateProps from 'src/middlewares/validate-props/validateProps.middleware';
 import {
   FindUserResponse,
@@ -29,9 +30,25 @@ import { UserMiddleware } from '../../database/user-model/user-model.middleware'
 export class UserController {
   constructor(private readonly usersService: UsersService) {}
 
+  @Get('name')
+  @UseGuards(UserMiddleware)
+  async findByUsername(
+    @Query('username') username: string,
+    @Req() { user }: any,
+  ): Promise<UserDocument[]> {
+    try {
+      return this.usersService.findByUsername(username, user._id);
+    } catch (e) {
+      throw new HttpException(
+        `Error finding users by name: ${e}`,
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+  }
+
   @Get(':page')
   @UseGuards(UserMiddleware)
-  findUsers(@Param('page') page: string): Promise<FindUserResponse> {
+  async findUsers(@Param('page') page: string): Promise<FindUserResponse> {
     try {
       return this.usersService.find(+page);
     } catch (e) {
@@ -59,14 +76,14 @@ export class UserController {
   @UseGuards(validateProps(PROPS_LOGIN, 'body', true))
   async login(@Req() req: any): Promise<LoginResponseType> {
     try {
-      return this.usersService.login(req.data);
+      return await this.usersService.login(req.data);
     } catch (e) {
       throw new HttpException(`Error to login: ${e}`, HttpStatus.BAD_REQUEST);
     }
   }
 
   @Post()
-  @UseGuards(JwtMailCodeMiddleware)
+  @UseGuards(CodeVerificationMiddleware)
   @UsePipes(new ValidationPipe())
   async createUser(@Body() user: UserType): Promise<UserDocument> {
     try {

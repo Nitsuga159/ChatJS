@@ -12,7 +12,10 @@ import {
 } from '../../database/user-model/user-model.type';
 import { UserModelService } from 'src/database/user-model/user-model.service';
 import { UserDocument } from 'src/database/user-model/user-model';
+import ENVS from 'src/envs';
 import { Types } from 'mongoose';
+
+const ObjectId = Types.ObjectId;
 
 @Injectable()
 export class UsersService {
@@ -35,14 +38,13 @@ export class UsersService {
       throw 'Invalid user';
 
     const { username, mail, color, photo, _id } = user;
-
     return {
       username,
       mail,
       color,
       photo,
       _id,
-      accessToken: sign({ _id }, String(process.env.JWT_USER_SECRET)),
+      accessToken: sign({ _id }, ENVS.JWT_USER_SECRET),
     };
   }
 
@@ -59,7 +61,7 @@ export class UsersService {
       color,
       photo,
       _id,
-      accessToken: sign({ _id }, String(process.env.JWT_USER_SECRET)),
+      accessToken: sign({ _id }, ENVS.JWT_USER_SECRET),
     };
   }
 
@@ -71,7 +73,7 @@ export class UsersService {
     return foundUser;
   }
 
-  async findById(id: Types.ObjectId): Promise<UserDocument> {
+  async findById(id: string | Types.ObjectId): Promise<UserDocument> {
     const foundUser = await this.userService.findById(id);
 
     if (!foundUser) throw 'user not found';
@@ -90,8 +92,10 @@ export class UsersService {
     };
   }
 
-  async update(id: Types.ObjectId, data: any): Promise<UserDocument> {
+  async update(id: string | Types.ObjectId, data: any): Promise<UserDocument> {
     if (!Object.values(data).length) throw 'No data to change';
+
+    id = new ObjectId(id.toString());
 
     const updatedUser = (
       await this.userService.findByIdAndUpdate(id, data)
@@ -117,5 +121,12 @@ export class UsersService {
     await foundedUser.save();
 
     return true;
+  }
+
+  async findByUsername(
+    username: string,
+    userId: Types.ObjectId,
+  ): Promise<UserDocument[]> {
+    return await this.userService.findByUsername(username, userId);
   }
 }

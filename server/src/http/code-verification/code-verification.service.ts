@@ -6,9 +6,10 @@ import {
   CodeVerificationDocument,
 } from '../../database/code-verification-model/code-verification-model';
 import { MailService } from 'src/mail/mail.service';
-import { JwtService } from '@nestjs/jwt';
 import { User } from '../../database/user-model/user-model';
 import { UserModelService } from 'src/database/user-model/user-model.service';
+import { sign } from 'jsonwebtoken';
+import ENVS from 'src/envs';
 
 @Injectable()
 export class CodeVerificationService {
@@ -17,19 +18,14 @@ export class CodeVerificationService {
     private readonly codeVerificationModel: Model<CodeVerificationDocument>,
     private readonly userService: UserModelService,
     private readonly mailService: MailService,
-    private readonly jwtService: JwtService,
   ) {}
 
-  async createCode(mail: string): Promise<boolean> {
+  async create(mail: string): Promise<boolean> {
     const findUser: User | null = await this.userService.findByOtherData({
       mail,
     });
 
-    if (findUser)
-      throw new HttpException(
-        'The user is already registered',
-        HttpStatus.NOT_ACCEPTABLE,
-      );
+    if (findUser) throw 'The user is already registered';
 
     // generate a random number with 6
     const code = Math.floor(Math.random() * 900000) + 100000;
@@ -52,10 +48,7 @@ export class CodeVerificationService {
     return true;
   }
 
-  async correctCode(data: {
-    mail: string;
-    code: number;
-  }): Promise<string | null> {
+  async verify(data: { mail: string; code: number }): Promise<string | null> {
     if (!data.code || !data.mail) return null;
 
     const { deletedCount } = await this.codeVerificationModel
@@ -63,10 +56,7 @@ export class CodeVerificationService {
       .exec();
 
     return deletedCount !== 0
-      ? this.jwtService.sign(
-          { mail: data.mail },
-          { secret: String(process.env.JWT_MAIL_SECRET) },
-        )
+      ? sign({ mail: data.mail }, ENVS.JWT_MAIL_SECRET)
       : null;
   }
 }

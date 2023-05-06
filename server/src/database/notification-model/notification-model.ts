@@ -7,7 +7,16 @@ import ENVS from 'src/envs';
 
 export type NotificationDocument = Notification & Document;
 
-@Schema()
+@Schema({
+  toObject: {
+    getters: true,
+    transform: function (doc, ret, options) {
+      delete ret.id;
+      delete ret.invitationId;
+      return ret;
+    },
+  },
+})
 export class Notification extends Document {
   @Prop({ type: Types.ObjectId, ref: User.name, required: true })
   sender: Types.ObjectId;
@@ -18,25 +27,28 @@ export class Notification extends Document {
   @Prop({ type: Types.ObjectId, required: true })
   invitationId: Types.ObjectId;
 
-  @Prop({ type: String, enum: NotificationType })
+  @Prop({
+    type: String,
+    enum: NotificationType,
+  })
   type: NotificationType;
 
-  @Prop({ type: Boolean, default: false })
+  @Prop({
+    type: Boolean,
+    default: false,
+  })
   readed: boolean;
 
-  get token(): string {
-    return sign(
-      { invitationId: this.invitationId, id: this._id, type: this.type },
-      ENVS.JWT_NOTIFICATION_SECRET,
-    );
-  }
+  token: string;
 }
 
-export const NotificationSchema = SchemaFactory.createForClass(Notification);
+const NotificationSchema = SchemaFactory.createForClass(Notification);
 
-NotificationSchema.set('toJSON', {
-  virtuals: true,
-  transform: (doc, ret) => {
-    delete ret._id;
-  },
+NotificationSchema.virtual('token').get(function (this: NotificationDocument) {
+  return sign(
+    { invitationId: this.invitationId, id: this._id },
+    ENVS.JWT_NOTIFICATION_SECRET,
+  );
 });
+
+export { NotificationSchema };

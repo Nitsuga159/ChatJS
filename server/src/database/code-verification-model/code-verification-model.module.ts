@@ -4,6 +4,7 @@ import {
   CodeVerification,
   CodeVerificationSchema,
 } from './code-verification-model';
+import { CodeVerificationMiddleware } from './code-verification-model.middleware';
 
 const CodeVerificationModel = MongooseModule.forFeature([
   { name: CodeVerification.name, schema: CodeVerificationSchema },
@@ -11,6 +12,7 @@ const CodeVerificationModel = MongooseModule.forFeature([
 
 @Module({
   imports: [CodeVerificationModel],
-  exports: [CodeVerificationModel],
+  providers: [CodeVerificationMiddleware],
+  exports: [CodeVerificationModel, CodeVerificationMiddleware],
 })
 export class CodeVerificationModelModule {}

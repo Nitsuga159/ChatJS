@@ -4,6 +4,9 @@ const ENVS = {
   JWT_NOTIFICATION_SECRET: String(process.env.JWT_NOTIFICATION_SECRET),
   MAIL_ADDRESS: String(process.env.MAIL_ADDRESS),
   MAIL_PASSWORD: String(process.env.MAIL_PASSWORD),
+  CLOUDINARY_CLOUD_NAME: String(process.env.CLOUDINARY_CLOUD_NAME),
+  CLOUDINARY_API_KEY: String(process.env.CLOUDINARY_API_KEY),
+  CLOUDINARY_API_SECRET: String(process.env.CLOUDINARY_API_SECRET),
 };
 
 export default ENVS;

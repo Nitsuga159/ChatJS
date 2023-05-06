@@ -18,12 +18,12 @@ export class NotificationMiddleware implements CanActivate {
   async canActivate(context: ExecutionContext): Promise<boolean> {
     try {
       const req: any = context.switchToHttp().getRequest();
-      const notificationToken = req.query.notificationToken;
+      const tokenNotification = req.query.tokenNotification;
 
-      if (!notificationToken) throw 'Invalid token';
+      if (!tokenNotification) throw 'Invalid token';
 
       const notification: any = verify(
-        notificationToken,
+        tokenNotification,
         ENVS.JWT_NOTIFICATION_SECRET,
       );
 

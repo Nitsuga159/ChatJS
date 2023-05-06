@@ -93,10 +93,10 @@ export class ChannelChatModelService {
       _id: { $in: ids },
       channelId: channelDocument._id,
       chatId,
-      $or: [{ 'message.sender': userId }, {}],
+      $or: [{ 'message.sender': userId }],
     };
 
-    if (isAdmin) query['isAdmin'] = true;
+    if (isAdmin) (query.$or as any).push({});
 
     const messageDocuments: { _id: Types.ObjectId }[] =
       await this.channelChatModel.find(query);

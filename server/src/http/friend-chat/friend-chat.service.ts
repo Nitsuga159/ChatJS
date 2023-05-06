@@ -11,6 +11,8 @@ import {
 } from 'src/database/types/message.type';
 import { Types } from 'mongoose';
 
+const ObjectId = Types.ObjectId;
+
 @Injectable()
 export class FriendChatService {
   constructor(
@@ -20,9 +22,10 @@ export class FriendChatService {
   ) {}
 
   async get(
-    friendId: Types.ObjectId,
+    friendId: string | Types.ObjectId,
     page: string,
   ): Promise<{ continue: boolean; results: FriendChatDocument[] }> {
+    friendId = new ObjectId(friendId.toString());
     let currentPage = Number.parseInt(page);
 
     const messagesFriendChat = await this.friendChatModelService.get(
@@ -37,13 +40,21 @@ export class FriendChatService {
   }
 
   async count(
-    friendId: Types.ObjectId,
-    userId: Types.ObjectId,
+    friendId: string | Types.ObjectId,
+    userId: string | Types.ObjectId,
   ): Promise<{ count: number }> {
+    friendId = new ObjectId(friendId.toString());
+    userId = new ObjectId(userId.toString());
+
     return await this.friendChatModelService.count(friendId, userId);
   }
 
-  async add(friendId: Types.ObjectId, message: MessageType): Promise<void> {
+  async add(
+    friendId: string | Types.ObjectId,
+    message: MessageType,
+  ): Promise<void> {
+    friendId = new ObjectId(friendId.toString());
+
     const createdMessage: FriendChatDocument =
       await this.friendChatModelService.add(friendId, message);
     const { user1, user2 } = await this.friendModelService.findById(friendId);
@@ -54,8 +65,10 @@ export class FriendChatService {
   async addReaded(
     ids: Types.ObjectId[],
     friendDocument: FriendDocument,
-    userId: Types.ObjectId,
+    userId: string | Types.ObjectId,
   ): Promise<void> {
+    userId = new ObjectId(userId.toString());
+
     await this.friendChatModelService.addReaded(
       ids,
       friendDocument._id,
@@ -66,8 +79,10 @@ export class FriendChatService {
   async delete(
     ids: Types.ObjectId[],
     friendDocument: FriendDocument,
-    userId: Types.ObjectId,
+    userId: string | Types.ObjectId,
   ): Promise<void> {
+    userId = new ObjectId(userId.toString());
+
     const idsMessages: Types.ObjectId[] =
       await this.friendChatModelService.delete(ids, friendDocument._id, userId);
 

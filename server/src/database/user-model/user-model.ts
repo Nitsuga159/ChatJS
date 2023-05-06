@@ -22,10 +22,16 @@ export class User {
   @Prop({ required: true, default: true })
   habilited: boolean;
 
-  @Prop()
+  @Prop({ type: String, default: null })
   photo: string;
 
-  @Prop({ enum: Object.values(Colors), default: Colors.BLUE })
+  @Prop({
+    type: String,
+    validators: {
+      validate: (v: string) => /^#([a-zA-Z0-9]{3}|[a-zA-Z0-9]{6})$/.test(v),
+    },
+    default: '#FFF',
+  })
   color: string;
 }
 

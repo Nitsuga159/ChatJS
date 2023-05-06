@@ -11,7 +11,7 @@ import {
 import { UserMiddleware } from '../../database/user-model/user-model.middleware';
 import { FriendService } from './friend.service';
 import { NotificationMiddleware } from 'src/database/notification-model/notification-model.middleware';
-import { FriendDocument } from 'src/database/friend-model/friend-model';
+import { FriendResponse } from 'src/database/friend-model/friend-model.type';
 
 @Controller('friend')
 @UseGuards(UserMiddleware)
@@ -21,7 +21,7 @@ export class FriendController {
   @Get()
   async get(
     @Req() req: any,
-  ): Promise<{ continue: boolean; results: FriendDocument[] }> {
+  ): Promise<{ continue: boolean; results: FriendResponse[] }> {
     try {
       return await this.friendService.find(req.user._id, req.query.page);
     } catch (e) {

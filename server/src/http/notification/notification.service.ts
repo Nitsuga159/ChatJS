@@ -1,15 +1,15 @@
 import { Injectable } from '@nestjs/common';
 import { Types } from 'mongoose';
-import {
-  Notification,
-  NotificationDocument,
-} from 'src/database/notification-model/notification-model';
+import { NotificationDocument } from 'src/database/notification-model/notification-model';
 import { NotificationModelService } from 'src/database/notification-model/notification-model.service';
-import { PER_PAGE_NOTIFICATIONS } from 'src/database/notification-model/notification-model.type';
+import {
+  PER_PAGE_NOTIFICATIONS,
+  ToNotification,
+} from 'src/database/notification-model/notification-model.type';
 import { Ws } from 'src/ws/ws.gateway';
-import { sign } from 'jsonwebtoken';
 import WS_EVENTS from 'src/ws/ws.type';
-import ENVS from 'src/envs';
+
+const ObjectId = Types.ObjectId;
 
 @Injectable()
 export class NotificationService {
@@ -19,9 +19,11 @@ export class NotificationService {
   ) {}
 
   async find(
-    userId: Types.ObjectId,
+    userId: string | Types.ObjectId,
     page: string,
   ): Promise<{ continue: boolean; results: NotificationDocument[] }> {
+    userId = new ObjectId(userId.toString());
+
     const currentPage = Number.parseInt(page);
 
     const userNotifications: NotificationDocument[] =
@@ -37,8 +39,10 @@ export class NotificationService {
   }
 
   async findById(
-    notificationId: Types.ObjectId,
+    notificationId: string | Types.ObjectId,
   ): Promise<NotificationDocument> {
+    notificationId = new ObjectId(notificationId.toString());
+
     const notificationDocument: NotificationDocument =
       await this.notificationModelService.findById(notificationId);
 
@@ -47,14 +51,9 @@ export class NotificationService {
     return notificationDocument;
   }
 
-  async create(
-    data: any,
-    toNotification: Omit<Notification, 'readed' | 'token'>,
-  ): Promise<boolean> {
-    const token = sign(data, ENVS.JWT_NOTIFICATION_SECRET);
-
+  async create(toNotification: ToNotification): Promise<boolean> {
     const notification: NotificationDocument =
-      await this.notificationModelService.create({ ...toNotification, token });
+      await this.notificationModelService.create(toNotification);
 
     this.ws.emitToOne(
       toNotification.destined,
@@ -65,11 +64,16 @@ export class NotificationService {
     return true;
   }
 
-  async count(destined: Types.ObjectId): Promise<{ count: number }> {
+  async count(destined: string | Types.ObjectId): Promise<{ count: number }> {
+    destined = new ObjectId(destined.toString());
+
     return await this.notificationModelService.count(destined);
   }
 
-  async readed(ids: Types.ObjectId[], destined: Types.ObjectId): Promise<void> {
+  async readed(
+    ids: (string | Types.ObjectId)[],
+    destined: string | Types.ObjectId,
+  ): Promise<void> {
     await this.notificationModelService.readed(ids, destined);
   }
 }

@@ -6,6 +6,7 @@ import { FriendChatModule } from './friend-chat/friend-chat.module';
 import { CodeVerificationModule } from './code-verification/code-verification.module';
 import { ChannelModule } from './channel/channel.module';
 import { ChannelChatModule } from './channel-chat/channel-chat.module';
+import { CloudinaryModule } from './cloudinary/cloudinary.module';
 
 @Module({
   imports: [
@@ -16,6 +17,7 @@ import { ChannelChatModule } from './channel-chat/channel-chat.module';
     ChannelModule,
     FriendChatModule,
     ChannelChatModule,
+    CloudinaryModule,
   ],
 })
 export class HttpModule {}

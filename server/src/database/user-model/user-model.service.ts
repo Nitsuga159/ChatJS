@@ -28,16 +28,15 @@ export class UserModelService {
     return await createdUser.save();
   }
 
-  async findById(id: Types.ObjectId): Promise<UserDocument | null> {
+  async findById(id: string | Types.ObjectId): Promise<UserDocument | null> {
     return await this.userModel.findById(id, {
       __v: 0,
       password: 0,
-      habilited: 0,
     });
   }
 
   async findByIdAndUpdate(
-    id: Types.ObjectId,
+    id: string | Types.ObjectId,
     data: UserType,
   ): Promise<UserDocument | null> {
     return await this.userModel
@@ -56,6 +55,23 @@ export class UserModelService {
       .find({}, { password: 0, __v: 0 })
       .skip(skip)
       .limit(PER_PAGE_USER)
+      .exec();
+  }
+
+  async findByUsername(
+    username: string,
+    userId: Types.ObjectId,
+  ): Promise<UserDocument[]> {
+    return await this.userModel
+      .find(
+        {
+          habilited: true,
+          _id: { $nin: userId },
+          username: { $regex: new RegExp(`^${username}`, 'i') },
+        },
+        { __v: 0, habilited: 0, password: 0 },
+      )
+      .limit(10)
       .exec();
   }
 }

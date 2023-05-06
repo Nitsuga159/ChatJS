@@ -24,7 +24,6 @@ export class UserMiddleware implements CanActivate {
       const token = authHeader.split(' ')[1];
 
       const { _id }: any = verify(token, ENVS.JWT_USER_SECRET);
-
       const user: any = await this.userService.findById(_id);
 
       if (!user || !user.habilited) throw 'Invalid token';

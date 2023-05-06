@@ -10,19 +10,21 @@ export class ChannelModelService {
     private readonly channelModel: Model<ChannelDocument>,
   ) {}
 
-  async findAll(userId: Types.ObjectId): Promise<ChannelDocument[]> {
+  async findAll(userId: string | Types.ObjectId): Promise<ChannelDocument[]> {
     return await this.channelModel
       .find({ participants: { $in: userId } }, { __v: 0 })
       .populate('admin participants', 'username photo color');
   }
 
-  async findById(channelId: Types.ObjectId): Promise<ChannelDocument | null> {
+  async findById(
+    channelId: string | Types.ObjectId,
+  ): Promise<ChannelDocument | null> {
     return await this.channelModel.findById(channelId, { __v: 0 }).exec();
   }
 
   async findByAdmin(
-    _id: Types.ObjectId,
-    admin: Types.ObjectId,
+    _id: string | Types.ObjectId,
+    admin: string | Types.ObjectId,
   ): Promise<ChannelDocument | null> {
     return await this.channelModel.findOne({ _id, admin });
   }
@@ -31,13 +33,13 @@ export class ChannelModelService {
     return await this.channelModel.findOne(data);
   }
 
-  async count(admin: Types.ObjectId): Promise<number> {
+  async count(admin: string | Types.ObjectId): Promise<number> {
     return await this.channelModel.countDocuments({ admin });
   }
 
   async create(data: {
     name: string;
-    admin: Types.ObjectId;
+    admin: string | Types.ObjectId;
     description?: string;
     photo?: string;
   }): Promise<ChannelDocument | null> {

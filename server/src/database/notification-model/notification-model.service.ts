@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { Notification, NotificationDocument } from './notification-model';
-import { NotificationType } from './notification-model.type';
+import { NotificationType, ToNotification } from './notification-model.type';
 import { PER_PAGE_MESSAGES } from '../types/message.type';
 
 @Injectable()
@@ -27,17 +27,16 @@ export class NotificationModelService {
   ): Promise<NotificationDocument[]> {
     const skip = page * PER_PAGE_MESSAGES;
 
-    return await this.notificationModel
-      .find({ destined }, { __v: 0, readed: 0, destined: 0, invitationId: 0 })
+    const notifications: NotificationDocument[] = await this.notificationModel
+      .find({ destined }, { __v: 0, readed: 0, destined: 0 })
       .populate('sender', 'username photo color')
       .skip(skip)
-      .limit(PER_PAGE_MESSAGES)
-      .exec();
+      .limit(PER_PAGE_MESSAGES);
+
+    return notifications.map((notification) => notification.toObject());
   }
 
-  async create(
-    data: Omit<Notification, 'readed'>,
-  ): Promise<NotificationDocument> {
+  async create(data: ToNotification): Promise<NotificationDocument> {
     let createdNotification = new this.notificationModel(data);
     createdNotification = (await createdNotification.save()).toObject();
 
@@ -62,7 +61,10 @@ export class NotificationModelService {
     };
   }
 
-  async readed(ids: Types.ObjectId[], destined: Types.ObjectId): Promise<void> {
+  async readed(
+    ids: (string | Types.ObjectId)[],
+    destined: string | Types.ObjectId,
+  ): Promise<void> {
     await this.notificationModel.updateMany(
       { _id: { $in: ids }, destined },
       { readed: true },

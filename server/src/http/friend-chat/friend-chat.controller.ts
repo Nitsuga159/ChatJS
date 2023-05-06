@@ -4,7 +4,6 @@ import {
   Get,
   HttpException,
   HttpStatus,
-  Param,
   Post,
   Req,
   UseGuards,
@@ -19,6 +18,7 @@ import {
   PROPS_READ_MESSAGES,
 } from 'src/database/types/message.type';
 import { FriendChatDocument } from 'src/database/friend-chat-model/friend-chat-model';
+import { FriendDocument } from 'src/database/friend-model/friend-model';
 
 @Controller('friend-chat')
 @UseGuards(UserMiddleware, FriendMiddleware)
@@ -61,7 +61,14 @@ export class FriendChatController {
   @UseGuards(validateProps(PROPS_NEW_MESSAGE, 'body', false, 'message'))
   async add(@Req() req: any) {
     try {
-      return await this.friendChatService.add(req.friendDocument._id, {
+      const friendDocument = req.friendDocument as FriendDocument;
+
+      if (!friendDocument.haveChat) {
+        friendDocument.haveChat = true;
+        await friendDocument.save();
+      }
+
+      return await this.friendChatService.add(friendDocument._id, {
         ...req.message,
         sender: req.user._id,
       });
