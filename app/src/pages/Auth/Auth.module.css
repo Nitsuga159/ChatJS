@@ -1,0 +1,37 @@
+.container {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  background-color: rgb(5, 4, 5);
+  user-select: none;
+}
+
+.authContainer {
+  display: flex;
+  align-items: center;
+  background-color: var(--dark-gray);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.logoContainer {
+  width: 300px;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--raisin-black);
+}
+
+.icon {
+  width: 7rem;
+  margin-bottom: 1rem;
+}
+
+.titleLogo {
+  margin: 0;
+}
