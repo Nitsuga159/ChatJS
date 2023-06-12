@@ -1,49 +1,78 @@
 import { useEffect, useState } from 'react';
-import Home from './components/Home/Home';
 import TitleBar from './components/TitleBar/TitleBar';
-import { ipcRenderer as comunicator } from 'electron';
+import { ipcRenderer } from 'electron';
 import { useDispatch, useSelector } from 'react-redux';
 import { AppDispatch } from './redux/store';
-import { loginWithToken, logout } from './actions/user';
 import { Route, Routes, useNavigate, NavigateFunction } from 'react-router-dom';
-import { InitialState } from './types/initialState.type';
-import { User } from './types/user.type';
-import Auth from './components/Auth/Auth';
 import axios from 'axios';
+import { getUserToken } from './ipc-electron';
+import Home from './pages/Home';
+import Auth from './pages/Auth/Auth';
+import AllProviders from './components/Providers';
+import ENVS from './envs';
+import { getUserState } from './redux/slices/user';
+import { addLoader, removeLoader } from './helpers/loaderFullScreen/loaderFullScreen';
+import { COLORS } from './styles';
+import { userActions, userFetchs } from './redux/actions/user';
+import { failureNotification } from './helpers/notify';
+import { DefaultResponse } from './types/const.type';
 
-axios.defaults.baseURL = process.env.REACT_APP_BACKEND || "http://localhost:3070";
+axios.defaults.baseURL = ENVS.BACKEND_URL || "http://localhost:3070";
 
 function App() {
-  const user: User = useSelector((state: InitialState) => state.user);
+  const { user } = useSelector(getUserState);
   const navigate: NavigateFunction = useNavigate();
   const dispatch: AppDispatch = useDispatch();
 
   useEffect(() => {
-    comunicator.on("token:get", (_, data) => {
-      dispatch(
-        typeof data === 'string' ?
-          loginWithToken(data) :
-          logout()
-      );
-    });
 
-    comunicator.send("token:get");
+    getUserToken().then(async token => {
+      if (!token) return navigate('/auth')
+
+      addLoader(COLORS.FOLLY);
+      const { ok, error, data } = await userFetchs.loginToken(token) as any as DefaultResponse;
+
+      ok ? dispatch(userActions.login(data)) : failureNotification(error!);
+
+      removeLoader();
+    })
+
   }, []);
 
   useEffect(() => {
-    if (user.state === 'waiting') navigate('/')
-    if (user.state === 'logged') navigate('/home')
-    if (user.state === 'not logged') navigate('/login')
-  }, [user.state]);
+    if (user) return navigate('/home');
+  }, [user]);
+
+  async function initVideo() {
+    const response = await ipcRenderer.invoke("user-devices");
+
+    const stream = await navigator.mediaDevices.getUserMedia({
+      audio: false,
+      video: {
+        mandatory: {
+          chromeMediaSource: 'desktop',
+          chromeMediaSourceId: response[1].id,
+          minWidth: 1280,
+          maxWidth: 1280,
+          minHeight: 720,
+          maxHeight: 720
+        }
+      }
+    } as any)
+  }
 
   return (
     <>
       <TitleBar />
-      <Routes>
-        <Route path="/" element={<h1>A ESPERAR!</h1>} />
-        <Route path="/home" element={<Home />} />
-        <Route path="/login" element={<Auth />} />
-      </Routes>
+      <main id="main">
+        <AllProviders>
+          <Routes>
+            <Route path="/" element={<></>} />
+            <Route path="/home" element={<Home />} />
+            <Route path="/auth" element={<Auth />} />
+          </Routes>
+        </AllProviders>
+      </main>
     </>
   )
 }
