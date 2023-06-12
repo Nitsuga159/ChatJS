@@ -1,8 +1,9 @@
-import { app, BrowserWindow, shell, ipcMain as comunicator } from "electron";
+import { app, BrowserWindow, shell, ipcMain } from "electron";
 import { release } from "node:os";
 import { join } from "node:path";
 import { update } from "./update";
 import Store from "electron-store";
+import ipcMainEvents from "./events";
 
 //Creates a store to save persist user data
 export const store = new Store();
@@ -66,23 +67,14 @@ async function createWindow() {
     },
   });
 
-  win.on("ready-to-show", () => win.show());
-
-  win.setMenu(null);
-
-  if (process.env.VITE_DEV_SERVER_URL) {
+  if (url) {
     // electron-vite-vue#298
     win.loadURL(url);
-    // Open devTool if the app is not packaged
-    win.webContents.openDevTools();
   } else {
     win.loadFile(indexHtml);
   }
 
-  // Test actively push message to the Electron-Renderer
-  win.webContents.on("did-finish-load", () => {
-    win?.webContents.send("main-process-message", new Date().toLocaleString());
-  });
+  ipcMainEvents({ win, store });
 
   // Make all links open with the browser, not with the application
   win.webContents.setWindowOpenHandler(({ url }) => {
@@ -90,19 +82,13 @@ async function createWindow() {
     return { action: "deny" };
   });
 
-  //TITLE BAR CONFIGURATION
-  win.on("maximize", () => win.webContents.send("maximize"));
-  win.on("unmaximize", () => win.webContents.send("restore"));
+  win.on("ready-to-show", () => {
+    //Creates all ipcMain events
 
-  comunicator.on("minimize", () => win.minimize());
-  comunicator.on("restore", () => win.restore());
-  comunicator.on("fullscreen", () => win.maximize());
-  comunicator.on("close", () => win.close());
-  comunicator.on("token:set", (_, value) => {
-    store.set("token", value);
-  });
-  comunicator.on("token:get", () => {
-    win.webContents.send("token:get", store.get("token") as string);
+    if (url) win.webContents.openDevTools();
+
+    win.maximize();
+    win.show();
   });
 
   // Apply electron-updater
@@ -126,26 +112,10 @@ app.on("second-instance", () => {
 
 app.on("activate", () => {
   const allWindows = BrowserWindow.getAllWindows();
+
   if (allWindows.length) {
     allWindows[0].focus();
   } else {
     createWindow();
-  }
-});
-
-// New window example arg: new windows url
-comunicator.handle("open-win", (_, arg) => {
-  const childWindow = new BrowserWindow({
-    webPreferences: {
-      preload,
-      nodeIntegration: true,
-      contextIsolation: false,
-    },
-  });
-
-  if (process.env.VITE_DEV_SERVER_URL) {
-    childWindow.loadURL(`${url}#${arg}`);
-  } else {
-    childWindow.loadFile(indexHtml, { hash: arg });
   }
 });
