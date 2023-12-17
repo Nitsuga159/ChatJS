@@ -23,15 +23,20 @@ export class NotificationModelService {
 
   async find(
     destined: Types.ObjectId,
-    page: number,
+    lastId: string,
   ): Promise<NotificationDocument[]> {
-    const skip = page * PER_PAGE_MESSAGES;
-
-    const notifications: NotificationDocument[] = await this.notificationModel
+    let query = this.notificationModel
       .find({ destined }, { __v: 0, readed: 0, destined: 0 })
-      .populate('sender', 'username photo color')
-      .skip(skip)
-      .limit(PER_PAGE_MESSAGES);
+      .sort({ createdAt: 'desc' })
+      .populate('sender', 'username photo color');
+
+    if (lastId) {
+      query = query.where('_id').gt(new Types.ObjectId(lastId) as any);
+    }
+
+    const notifications: NotificationDocument[] = await query
+      .limit(PER_PAGE_MESSAGES)
+      .exec();
 
     return notifications.map((notification) => notification.toObject());
   }
@@ -42,23 +47,19 @@ export class NotificationModelService {
 
     delete createdNotification.__v;
     delete createdNotification.destined;
-    delete createdNotification.readed;
     delete createdNotification.invitationId;
 
     return createdNotification;
   }
 
-  async delete(notificationId: Types.ObjectId): Promise<void> {
-    await this.notificationModel.findByIdAndDelete(notificationId);
-  }
-
-  async count(destined: Types.ObjectId): Promise<{ count: number }> {
-    return {
-      count: await this.notificationModel.countDocuments({
-        destined,
-        readed: false,
-      }),
-    };
+  async delete(
+    notificationId: Types.ObjectId,
+    userId: Types.ObjectId,
+  ): Promise<void> {
+    await this.notificationModel.findOneAndDelete({
+      _id: notificationId,
+      destined: userId,
+    });
   }
 
   async readed(

@@ -5,11 +5,13 @@ import { ChannelChatModelService } from 'src/database/channel-chat-model/channel
 import { ChannelModelService } from 'src/database/channel-model/channel-model.service';
 import { ChannelDocument } from 'src/database/channel-model/channel.model';
 import {
+  ChatMessageData,
   MessageType,
   PER_PAGE_MESSAGES,
 } from 'src/database/types/message.type';
+import { WS_CHANNEL } from 'src/ws/ws.events';
 import { Ws } from 'src/ws/ws.gateway';
-import WS_EVENTS from 'src/ws/ws.type';
+import { CloudinaryService } from '../cloudinary/cloudinary.service';
 
 const ObjectId = Types.ObjectId;
 
@@ -19,64 +21,57 @@ export class ChannelChatService {
     private readonly channelChatModelService: ChannelChatModelService,
     private readonly channelModelService: ChannelModelService,
     private readonly ws: Ws,
+    private readonly cloudinaryService: CloudinaryService,
   ) {}
 
   async get(
     channelId: Types.ObjectId,
     chatId: Types.ObjectId,
-    page: string,
+    lastId: string,
   ): Promise<{ continue: boolean; results: ChannelChatDocument[] }> {
-    let currentPage = Number.parseInt(page);
-
     const messagesChannelChat = await this.channelChatModelService.get(
       channelId,
       chatId,
-      isNaN(currentPage) || currentPage < 1 ? 0 : currentPage - 1,
+      lastId,
     );
 
     return {
-      continue: messagesChannelChat.length === PER_PAGE_MESSAGES,
+      continue:
+        messagesChannelChat.length ===
+        ChannelChatModelService.PER_PAGE_CHANNEL_CHAT,
       results: messagesChannelChat,
     };
   }
 
-  async count(
-    channelId: Types.ObjectId,
-    chatId: Types.ObjectId,
-    userId: Types.ObjectId,
-  ): Promise<{ count: number }> {
-    return this.channelChatModelService.count(channelId, chatId, userId);
-  }
-
   async add(
-    channelId: string | Types.ObjectId,
-    chatId: string | Types.ObjectId,
+    chatMessageData: ChatMessageData,
     message: MessageType,
   ): Promise<void> {
-    channelId = new ObjectId(channelId.toString());
-    chatId = new ObjectId(chatId.toString());
-
+    const { channelId, chatId } = chatMessageData;
     const createdMessage: ChannelChatDocument =
-      await this.channelChatModelService.add(channelId, chatId, message);
-    const { participants } = await this.channelModelService.findById(channelId);
+      await this.channelChatModelService.add(chatMessageData, message);
+    const channelDocument = await this.channelModelService.findById(channelId);
 
-    this.ws.emitToGroup(participants, WS_EVENTS.NEW_MESSAGE, createdMessage);
-  }
+    const { participants } = channelDocument;
+    const chatIndex = channelDocument.chats.findIndex(
+      (chat) => chat._id.toString() === chatId.toString(),
+    );
 
-  async addReaded(
-    ids: string[],
-    channelDocument: ChannelDocument,
-    chatId: string | Types.ObjectId,
-    userId: string | Types.ObjectId,
-  ): Promise<void> {
-    chatId = new ObjectId(chatId.toString());
-    userId = new ObjectId(userId.toString());
+    if (chatIndex < 0) throw 'Invalid chat';
 
-    await this.channelChatModelService.addReaded(
-      ids,
-      channelDocument._id,
-      chatId,
-      userId,
+    const { messagesCount } = channelDocument.chats[chatIndex];
+
+    participants.forEach((id) => {
+      if (!id.equals(message.sender))
+        messagesCount.set(id, messagesCount.get(id) + 1);
+    });
+
+    await channelDocument.save();
+
+    this.ws.emitToGroup(
+      participants,
+      WS_CHANNEL.NEW_CHANNEL_MESSAGE,
+      createdMessage,
     );
   }
 
@@ -89,6 +84,8 @@ export class ChannelChatService {
     chatId = new ObjectId(chatId.toString());
     userId = new ObjectId(userId.toString());
 
+    const allPhotos = await this.channelChatModelService.getImageMessages(ids);
+
     const idsMessages = await this.channelChatModelService.delete(
       ids,
       channelDocument,
@@ -98,6 +95,14 @@ export class ChannelChatService {
 
     const { participants } = channelDocument;
 
-    this.ws.emitToGroup(participants, WS_EVENTS.DELETED_MESSAGE, idsMessages);
+    this.ws.emitToGroup(participants, WS_CHANNEL.DELETE_CHANNEL_MESSAGE, {
+      chatId,
+      ids: idsMessages.map((id) => id.toString()),
+    });
+
+    console.log(allPhotos);
+    allPhotos.forEach((url) =>
+      this.cloudinaryService.deleteImage(url.match(/CHATJS\/\w+/)[0]),
+    );
   }
 }

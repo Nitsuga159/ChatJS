@@ -18,6 +18,11 @@ const notificationSlice = createSlice({
     addChannelNotification: addChannelNotificationReducer,
     addFriendNotification: addFriendNotificationReducer,
     deleteNotification: deleteNotificationReducer,
+    reset(state) {
+      state.continue = true;
+      state.lastId = null;
+      state.notifications = [];
+    },
   },
 });
 

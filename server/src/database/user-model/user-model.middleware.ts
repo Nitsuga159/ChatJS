@@ -11,7 +11,7 @@ import ENVS from 'src/envs';
 
 @Injectable()
 export class UserMiddleware implements CanActivate {
-  constructor(private readonly userService: UserModelService) {}
+  constructor(private readonly userModelService: UserModelService) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     try {
@@ -24,7 +24,8 @@ export class UserMiddleware implements CanActivate {
       const token = authHeader.split(' ')[1];
 
       const { _id }: any = verify(token, ENVS.JWT_USER_SECRET);
-      const user: any = await this.userService.findById(_id);
+
+      const user: any = await this.userModelService.findById(_id);
 
       if (!user || !user.habilited) throw 'Invalid token';
 

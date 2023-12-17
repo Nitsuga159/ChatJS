@@ -4,12 +4,11 @@ import { User } from 'src/database/user-model/user-model';
 import { Friend } from '../friend-model/friend-model';
 
 type MessageType = {
+  photos: string[];
   value: string;
   sender: string;
-  meta: {
-    createdAt: Date;
-    readed: boolean;
-  };
+  createdAt: string;
+  updatedAt: string;
 };
 
 export type FriendChatDocument = FriendChat & Document;
@@ -19,10 +18,14 @@ export class FriendChat {
   @Prop({ type: Types.ObjectId, ref: Friend.name, required: true })
   friendId: Types.ObjectId;
 
+  @Prop({ type: String, required: true })
+  clientId: string;
+
   @Prop({
     type: {
       value: {
         type: String,
+        default: null,
         validate: { validator: (v: string) => v.length <= 2500 },
       },
       photos: {
@@ -31,16 +34,6 @@ export class FriendChat {
         validate: { validator: (v: string[]) => v.length <= 3 },
       },
       sender: { type: Types.ObjectId, ref: User.name, required: true },
-      readed: {
-        type: [
-          {
-            type: Types.ObjectId,
-            ref: User.name,
-            required: true,
-          },
-        ],
-        default: [],
-      },
     },
     _id: false,
     required: true,

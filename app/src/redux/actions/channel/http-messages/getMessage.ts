@@ -29,7 +29,7 @@ export const getMessagesReducer = (
   console.log("se llamo getMessages");
   chats[chatId] = {
     continue: canContinue,
-    lastId: results[0]?._id || state.channel.lastId,
+    lastId: results[0]?._id || null,
     messages: chats[chatId]
       ? [...results, ...chats[chatId].messages]
       : [...results],

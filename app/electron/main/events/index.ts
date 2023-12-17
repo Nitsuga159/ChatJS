@@ -12,8 +12,8 @@ const ipcMainEvents = ({ win, store }: IpcMainProps) => {
   });
 
   //TITLE BAR FUNCTIONABILITIES
-  win.on("minimize", () => ipcMain.emit(IPC.MINIMIZE));
-  win.on("unmaximize", () => ipcMain.emit(IPC.RESTORE));
+  win.on("maximize", () => win.webContents.send(IPC.MAXIMIZE));
+  win.on("unmaximize", () => win.webContents.send(IPC.RESTORE));
 
   ipcMain.on(IPC.MINIMIZE, () => win.minimize());
   ipcMain.on(IPC.RESTORE, () => win.restore());

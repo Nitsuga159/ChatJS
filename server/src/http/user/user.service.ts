@@ -6,7 +6,6 @@ import {
   FindUserResponse,
   LoginRequest,
   LoginResponseType,
-  PER_PAGE_USER,
   ROUNDS_ENCRYPT,
   UserType,
 } from '../../database/user-model/user-model.type';
@@ -14,15 +13,19 @@ import { UserModelService } from 'src/database/user-model/user-model.service';
 import { UserDocument } from 'src/database/user-model/user-model';
 import ENVS from 'src/envs';
 import { Types } from 'mongoose';
+import { Ws } from 'src/ws/ws.gateway';
 
 const ObjectId = Types.ObjectId;
 
 @Injectable()
 export class UsersService {
-  constructor(private readonly userService: UserModelService) {}
+  constructor(
+    private readonly userModelService: UserModelService,
+    private readonly ws: Ws,
+  ) {}
 
   async create(user: UserType): Promise<UserDocument> {
-    const createdUser = await this.userService.create(user);
+    const createdUser = await this.userModelService.create(user);
 
     if (!createdUser) throw 'Failed to create user';
 
@@ -30,12 +33,14 @@ export class UsersService {
   }
 
   async login(data: LoginRequest): Promise<LoginResponseType> {
-    const user: any = await this.findByOtherData({ username: data.username });
+    const user: any = await this.findByOtherData({ mail: data.mail });
 
     if (!user) throw 'Invalid user';
 
     if (!(await compare(data.password, user.password)) && user.habilited)
       throw 'Invalid user';
+
+    if (this.ws.isConnected(user._id)) throw 'User is already connected';
 
     const { username, mail, color, photo, _id } = user;
     return {
@@ -55,6 +60,8 @@ export class UsersService {
     photo,
     _id,
   }: any): Promise<LoginResponseType> {
+    if (this.ws.isConnected(_id)) throw 'User is already connected';
+
     return {
       username,
       mail,
@@ -66,7 +73,7 @@ export class UsersService {
   }
 
   async findByOtherData(data: any): Promise<UserDocument> {
-    const foundUser = await this.userService.findByOtherData(data);
+    const foundUser = await this.userModelService.findByOtherData(data);
 
     if (!foundUser) throw 'user not found';
 
@@ -74,20 +81,18 @@ export class UsersService {
   }
 
   async findById(id: string | Types.ObjectId): Promise<UserDocument> {
-    const foundUser = await this.userService.findById(id);
+    const foundUser = await this.userModelService.findById(id);
 
     if (!foundUser) throw 'user not found';
 
     return foundUser;
   }
 
-  async find(page: number): Promise<FindUserResponse> {
-    page = isNaN(+page) || +page < 1 ? 0 : page - 1;
-
-    const users = await this.userService.find(page);
+  async find(lastId: string): Promise<FindUserResponse> {
+    const users = await this.userModelService.find(lastId);
 
     return {
-      continue: users.length === PER_PAGE_USER,
+      continue: users.length === UserModelService.PER_PAGE_USER,
       result: users,
     };
   }
@@ -98,7 +103,7 @@ export class UsersService {
     id = new ObjectId(id.toString());
 
     const updatedUser = (
-      await this.userService.findByIdAndUpdate(id, data)
+      await this.userModelService.findByIdAndUpdate(id, data)
     ).toObject();
 
     delete updatedUser.password;
@@ -111,7 +116,7 @@ export class UsersService {
     user: UserType,
     { password, newPassword }: ChangePasswordType,
   ): Promise<boolean> {
-    const foundedUser = await this.userService.findById(user._id);
+    const foundedUser = await this.userModelService.findById(user._id);
 
     if (!(await compare(password, foundedUser.password)))
       throw 'Invalid user to change data';
@@ -125,8 +130,18 @@ export class UsersService {
 
   async findByUsername(
     username: string,
+    lastId: string,
     userId: Types.ObjectId,
-  ): Promise<UserDocument[]> {
-    return await this.userService.findByUsername(username, userId);
+  ): Promise<{ result: UserDocument[]; continue: boolean }> {
+    const result = await this.userModelService.findByUsername(
+      username,
+      lastId,
+      userId,
+    );
+
+    return {
+      result,
+      continue: result.length === UserModelService.PER_PAGE_USER,
+    };
   }
 }

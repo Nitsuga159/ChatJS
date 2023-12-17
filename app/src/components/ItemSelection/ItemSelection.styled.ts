@@ -59,7 +59,6 @@ export const ItemSelectionContainer = styled.div<{
   }`
       : ""}
   &:active {
-    transform: scale(0.8);
     opacity: 0.6;
   }
 `;

@@ -2,7 +2,11 @@ import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { ChannelChat, ChannelChatDocument } from './channel-chat-model';
 import { Model, Types } from 'mongoose';
-import { MessageType, PER_PAGE_MESSAGES } from '../types/message.type';
+import {
+  ChatMessageData,
+  MessageType,
+  PER_PAGE_MESSAGES,
+} from '../types/message.type';
 import { ChannelDocument } from '../channel-model/channel.model';
 
 @Injectable()
@@ -12,37 +16,49 @@ export class ChannelChatModelService {
     private readonly channelChatModel: Model<ChannelChatDocument>,
   ) {}
 
+  static readonly PER_PAGE_CHANNEL_CHAT = 30;
+
   async get(
     channelId: Types.ObjectId,
     chatId: Types.ObjectId,
-    page: number,
+    lastId: string,
   ): Promise<ChannelChatDocument[]> {
-    const skip: number = page * PER_PAGE_MESSAGES;
-
-    return await this.channelChatModel
-      .find(
-        { channelId, chatId },
-        { __v: 0, channelId: 0, chatId: 0, 'message.readed': 0 },
-      )
+    let query = this.channelChatModel
+      .find({ channelId, chatId }, { __v: 0, channelId: 0, chatId: 0 })
       .sort({ createdAt: 'desc' })
-      .populate('message.sender', 'username photo color')
-      .skip(skip)
-      .limit(PER_PAGE_MESSAGES)
+      .populate('message.sender', 'username photo color');
+
+    if (lastId) {
+      query = query.where('_id').lt(new Types.ObjectId(lastId) as any);
+    }
+
+    const messages = await query
+      .limit(ChannelChatModelService.PER_PAGE_CHANNEL_CHAT)
       .exec();
+
+    return messages.reverse();
+  }
+
+  async getImageMessages(idsMessages: string[]): Promise<string[]> {
+    return (
+      await this.channelChatModel.find({ _id: { $in: idsMessages } }).exec()
+    )
+      .map((m) => m.message.photos)
+      .reduce((actual, next) => [...actual, ...next], []);
   }
 
   async add(
-    channelId: Types.ObjectId,
-    chatId: Types.ObjectId,
+    chatMessageData: ChatMessageData,
     message: MessageType,
   ): Promise<ChannelChatDocument> {
     let createdMessage = new this.channelChatModel({
-      channelId,
-      chatId,
+      ...chatMessageData,
       message,
     });
     createdMessage = await createdMessage.save();
-    createdMessage = createdMessage.toObject();
+    createdMessage = (
+      await createdMessage.populate('message.sender', 'username photo color')
+    ).toObject();
 
     delete createdMessage.__v;
 

@@ -1,7 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { FriendChatDocument } from '../../database/friend-chat-model/friend-chat-model';
 import { Ws } from 'src/ws/ws.gateway';
-import WS_EVENTS from 'src/ws/ws.type';
 import { FriendChatModelService } from 'src/database/friend-chat-model/friend-chat-model.service';
 import { FriendDocument } from 'src/database/friend-model/friend-model';
 import { FriendModelService } from 'src/database/friend-model/friend-model.service';
@@ -10,6 +9,8 @@ import {
   PER_PAGE_MESSAGES,
 } from 'src/database/types/message.type';
 import { Types } from 'mongoose';
+import { WS_FRIEND } from 'src/ws/ws.events';
+import { CloudinaryService } from '../cloudinary/cloudinary.service';
 
 const ObjectId = Types.ObjectId;
 
@@ -19,18 +20,18 @@ export class FriendChatService {
     private readonly friendChatModelService: FriendChatModelService,
     private readonly friendModelService: FriendModelService,
     private readonly ws: Ws,
+    private readonly cloudinaryService: CloudinaryService,
   ) {}
 
   async get(
     friendId: string | Types.ObjectId,
-    page: string,
+    lastId: string,
   ): Promise<{ continue: boolean; results: FriendChatDocument[] }> {
     friendId = new ObjectId(friendId.toString());
-    let currentPage = Number.parseInt(page);
 
     const messagesFriendChat = await this.friendChatModelService.get(
       friendId,
-      isNaN(currentPage) || currentPage < 1 ? 0 : currentPage - 1,
+      lastId,
     );
 
     return {
@@ -39,41 +40,32 @@ export class FriendChatService {
     };
   }
 
-  async count(
-    friendId: string | Types.ObjectId,
-    userId: string | Types.ObjectId,
-  ): Promise<{ count: number }> {
-    friendId = new ObjectId(friendId.toString());
-    userId = new ObjectId(userId.toString());
-
-    return await this.friendChatModelService.count(friendId, userId);
-  }
-
   async add(
     friendId: string | Types.ObjectId,
+    userId: string | Types.ObjectId,
+    clientId: string,
     message: MessageType,
   ): Promise<void> {
     friendId = new ObjectId(friendId.toString());
-
-    const createdMessage: FriendChatDocument =
-      await this.friendChatModelService.add(friendId, message);
-    const { user1, user2 } = await this.friendModelService.findById(friendId);
-
-    this.ws.emitToGroup([user1, user2], WS_EVENTS.NEW_MESSAGE, createdMessage);
-  }
-
-  async addReaded(
-    ids: Types.ObjectId[],
-    friendDocument: FriendDocument,
-    userId: string | Types.ObjectId,
-  ): Promise<void> {
     userId = new ObjectId(userId.toString());
 
-    await this.friendChatModelService.addReaded(
-      ids,
-      friendDocument._id,
-      userId,
-    );
+    const createdMessage: FriendChatDocument =
+      await this.friendChatModelService.add(friendId, clientId, message);
+
+    const friendDocument = await this.friendModelService.findById(friendId);
+
+    const { user1, user2, messagesCount } = friendDocument;
+
+    let userToSend = userId.equals(friendDocument.user1) ? user2 : user1;
+
+    messagesCount.set(userToSend, messagesCount.get(userToSend) + 1);
+
+    await friendDocument.save();
+
+    this.ws.emitToGroup([user1, user2], WS_FRIEND.NEW_FRIEND_MESSAGE, {
+      message: createdMessage,
+      friendId,
+    });
   }
 
   async delete(
@@ -83,11 +75,23 @@ export class FriendChatService {
   ): Promise<void> {
     userId = new ObjectId(userId.toString());
 
+    const allPhotos = await this.friendChatModelService.getPhotosMessage(
+      ids as unknown as string[],
+    );
+
+    console.log(allPhotos);
+    allPhotos.forEach((url) =>
+      this.cloudinaryService.deleteImage(url.match(/CHATJS\/\w+/)[0]),
+    );
+
     const idsMessages: Types.ObjectId[] =
       await this.friendChatModelService.delete(ids, friendDocument._id, userId);
 
     const { user1, user2 } = friendDocument;
 
-    this.ws.emitToGroup([user1, user2], WS_EVENTS.DELETED_MESSAGE, idsMessages);
+    this.ws.emitToGroup([user1, user2], WS_FRIEND.DELETE_FRIEND_MESSAGE, {
+      ids: idsMessages,
+      friendId: friendDocument._id,
+    });
   }
 }

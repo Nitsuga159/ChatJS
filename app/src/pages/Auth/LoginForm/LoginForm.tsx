@@ -43,7 +43,7 @@ export default function LoginForm({ setMode }: LoginFormProps) {
       Object.values(inputErrors)
         .some((error: string) => error !== "");
 
-    //if (isError) return;
+    if (isError) return;
 
     addLoader(COLORS.FOLLY);
 

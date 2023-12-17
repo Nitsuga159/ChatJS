@@ -3,17 +3,17 @@ import axios from "axios";
 import utils from "@/utils";
 import { FriendMessage, InitialStateFriends } from "@/redux/slices/friend/type";
 import { RequestAddFriendMessage, ResponseAddFriendMessage } from "./type";
-import defaultError from "@/helpers/defaultError";
 import { DefaultResponse } from "@/types/const.type";
 
 const addMessage = async ({
   friendId,
+  clientId,
   value,
   photos,
   accessToken,
 }: RequestAddFriendMessage): Promise<boolean> => {
   await axios.post(
-    `/friend-chat/message/${friendId}`,
+    `/friend-chat/message/${friendId}?clientId=${clientId}`,
     { value, photos },
     utils.createHeaderToken(accessToken)
   );

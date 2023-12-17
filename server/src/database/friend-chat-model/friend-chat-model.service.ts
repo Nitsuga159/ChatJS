@@ -13,54 +13,46 @@ export class FriendChatModelService {
 
   async get(
     friendId: Types.ObjectId,
-    page: number,
+    lastId: string,
   ): Promise<FriendChatDocument[]> {
-    const skip: number = page * PER_PAGE_MESSAGES;
-
-    return await this.friendChatModel
-      .find({ friendId }, { __v: 0, friendId: 0, 'message.readed': 0 })
+    let query = this.friendChatModel
+      .find({ friendId }, { __v: 0, friendId: 0 })
       .sort({ createdAt: 'desc' })
-      .populate('message.sender', 'username photo color')
-      .skip(skip)
-      .limit(PER_PAGE_MESSAGES)
-      .exec();
+      .populate('message.sender', 'username photo color');
+
+    if (lastId) {
+      query = query.where('_id').lt(new Types.ObjectId(lastId) as any);
+    }
+
+    const messages = await query.limit(PER_PAGE_MESSAGES).exec();
+
+    return messages.reverse();
+  }
+
+  async getPhotosMessage(messagesIds: string[]): Promise<string[]> {
+    return (
+      await this.friendChatModel.find({ _id: { $in: messagesIds } })
+    ).reduce((array, { message }) => [...array, ...message.photos], []);
   }
 
   async add(
     friendId: Types.ObjectId,
+    clientId: string,
     message: MessageType,
   ): Promise<FriendChatDocument> {
-    let createdMessage = new this.friendChatModel({ friendId, message });
-    createdMessage = await createdMessage.save();
+    let createdMessage = new this.friendChatModel({
+      friendId,
+      clientId,
+      message,
+    });
+    createdMessage = await (
+      await createdMessage.save()
+    ).populate('message.sender', 'username color photo');
     createdMessage = createdMessage.toObject();
 
     delete createdMessage.__v;
 
     return createdMessage;
-  }
-
-  async count(
-    friendId: Types.ObjectId,
-    userId: Types.ObjectId,
-  ): Promise<{ count: number }> {
-    return {
-      count: await this.friendChatModel.countDocuments({
-        friendId,
-        'message.readed': { $nin: [userId] },
-        'message.sender': { $ne: userId },
-      }),
-    };
-  }
-
-  async addReaded(
-    ids: Types.ObjectId[],
-    friendId: Types.ObjectId,
-    userId: Types.ObjectId,
-  ): Promise<void> {
-    await this.friendChatModel.updateMany(
-      { _id: { $in: ids }, 'message.readed': { $ne: userId }, friendId },
-      { $addToSet: { 'message.readed': userId } },
-    );
   }
 
   async delete(

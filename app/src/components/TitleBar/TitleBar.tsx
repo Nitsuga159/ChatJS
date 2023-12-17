@@ -8,12 +8,13 @@ import LogoIcon from '../Svg/LogoIcon/LogoIcon';
 import { setCloseWindow, setFullscreenWindow, setMinimizeWindow, setRestoreWindow } from '@/ipc-electron';
 import styled from 'styled-components';
 import { COLORS, PRE_VALUES } from '@/styles';
+import IPC from '@/ipc-electron/ipc-events.type';
 
 const Container = styled.header`
   ${PRE_VALUES.FLEX}
   justify-content: space-between;
   height: var(--titlebar-height);  
-  background-color: ${COLORS.GRAY};
+  background-color: ${COLORS.MIDDLE_BLACK};
   user-select: none;
 `;
 
@@ -65,11 +66,17 @@ const StateIcon = styled.img`
 `;
 
 export default function TitleBar() {
-  const [isFullScreen, setIsFullScreen] = useState(false);
+  const [isMaximized, setIsMaximized] = useState(true);
 
   useEffect(() => {
-    ipcRenderer.on("maximize", () => setIsFullScreen(true));
-    ipcRenderer.on("restore", () => setIsFullScreen(false));
+    const maximize = () => setIsMaximized(true)
+    const restore = () => { setIsMaximized(false) }
+    ipcRenderer.on(IPC.MAXIMIZE, maximize);
+    ipcRenderer.on(IPC.RESTORE, restore);
+    return () => {
+      ipcRenderer.off(IPC.MAXIMIZE, maximize);
+      ipcRenderer.off(IPC.RESTORE, restore);
+    }
   }, [])
 
 
@@ -87,14 +94,12 @@ export default function TitleBar() {
           <StateIcon src={minimize} alt="close-button" draggable={false} />
         </StateItem>
         <StateItem
-          onClick={() => {
-            setIsFullScreen(prev => !prev);
-            isFullScreen ? setRestoreWindow() : setFullscreenWindow()
-          }}
+          onClick={() =>
+            isMaximized ? setRestoreWindow() : setFullscreenWindow()}
           className="item-right"
-          title={isFullScreen ? "restore" : "fullscreen"}
+          title={isMaximized ? "restore" : "fullscreen"}
         >
-          <StateIcon src={isFullScreen ? restore : fullscreen} alt="close-button" draggable={false} />
+          <StateIcon src={isMaximized ? restore : fullscreen} alt="close-button" draggable={false} />
         </StateItem>
         <StateItem
           onClick={setCloseWindow}

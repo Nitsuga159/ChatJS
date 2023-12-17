@@ -3,7 +3,7 @@ import { Friend, FriendDocument } from './friend-model';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import {
-  FriendResponse,
+  FriendDatabaseResponse,
   PER_EXTEND_PAGE_FRIEND,
   PER_PAGE_FRIEND,
 } from './friend-model.type';
@@ -15,22 +15,29 @@ export class FriendModelService {
     private readonly friendModel: Model<FriendDocument>,
   ) {}
 
-  async find(userId: Types.ObjectId, page: number): Promise<FriendResponse[]> {
-    const skip = page * PER_PAGE_FRIEND;
-
-    const friends: FriendDocument[] = await this.friendModel
+  async find(
+    userId: Types.ObjectId,
+    lastId: string,
+  ): Promise<FriendDatabaseResponse[]> {
+    let query = this.friendModel
       .find(
         { haveChat: true, $or: [{ user1: userId }, { user2: userId }] },
         { __v: 0 },
       )
       .populate('user1 user2', 'username photo color')
-      .skip(skip)
-      .limit(PER_PAGE_FRIEND)
-      .exec();
+      .sort({ createdAt: 'desc' });
 
-    return friends.map(({ _id, user1, user2 }) => ({
+    if (lastId) {
+      query = query.where('_id').lt(new Types.ObjectId(lastId) as any);
+    }
+
+    const friends: FriendDocument[] = await query.limit(PER_PAGE_FRIEND).exec();
+
+    return friends.map(({ _id, haveChat, messagesCount, user1, user2 }) => ({
       _id,
-      friend: !user1.equals(userId) ? user1 : user2,
+      haveChat,
+      messagesCount: messagesCount.get(userId),
+      friend: (!user1._id.equals(userId) ? user1 : user2) as any,
     }));
   }
 
@@ -82,12 +89,29 @@ export class FriendModelService {
 
     if (isFriend) return null;
 
-    let addedFriend = new this.friendModel({ user1, user2 });
+    const messagesCount = new Map<Types.ObjectId, number>();
 
+    messagesCount.set(user1, 0);
+    messagesCount.set(user2, 0);
+
+    let addedFriend = new this.friendModel({ user1, user2, messagesCount });
+    await addedFriend.populate('user1 user2', 'username photo color');
     addedFriend = (await addedFriend.save()).toObject();
 
     delete addedFriend.__v;
 
     return addedFriend;
+  }
+
+  async readMessages(
+    friendId: Types.ObjectId,
+    userId: Types.ObjectId,
+  ): Promise<void> {
+    const friendDocument = await this.friendModel.findById(friendId);
+
+    if (friendDocument) {
+      friendDocument.messagesCount.set(userId, 0);
+      await friendDocument.save();
+    }
   }
 }

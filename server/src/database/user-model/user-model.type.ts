@@ -2,7 +2,7 @@ import { Types } from 'mongoose';
 import { UserDocument } from './user-model';
 
 export type LoginRequest = {
-  username: string;
+  mail: string;
   password: string;
 };
 
@@ -37,6 +37,4 @@ export enum Colors {
 }
 
 export const ROUNDS_ENCRYPT = 10;
-export const PER_PAGE_USER = 15;
-export const PROPS_LOGIN = ['username', 'password'];
 export const PROPS_UPDATE_USER = ['username', 'color', 'photo'];

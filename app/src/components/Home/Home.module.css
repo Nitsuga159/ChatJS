@@ -1,8 +1,0 @@
-.home-container {
-  width: 100%;
-  height: calc(100% - var(--titlebar-height));
-  background-color: var(--gray-discord);
-  display: grid;
-  grid-template-columns: 15rem 1fr 17rem;
-  grid-template-rows: 100%;
-}

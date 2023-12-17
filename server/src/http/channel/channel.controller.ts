@@ -4,6 +4,7 @@ import {
   Get,
   HttpException,
   HttpStatus,
+  Param,
   Post,
   Put,
   Query,
@@ -16,7 +17,11 @@ import { ChannelService } from './channel.service';
 import validateProps from 'src/middlewares/validate-props/validateProps.middleware';
 import { PROPS_NEW_CHANNEL, PROPS_UPDATE_CHANNEL } from './channel.type';
 import { NotificationMiddleware } from 'src/database/notification-model/notification-model.middleware';
-import { AdminMiddleware } from 'src/database/channel-model/channel-model.middleware';
+import {
+  AdminMiddleware,
+  FindChannelMiddleware,
+  FindChatMiddleware,
+} from 'src/database/channel-model/channel-model.middleware';
 
 @Controller('channel')
 @UseGuards(UserMiddleware)
@@ -24,12 +29,30 @@ export class ChannelController {
   constructor(private readonly channelService: ChannelService) {}
 
   @Get()
-  async findAll(@Req() req: any): Promise<ChannelDocument[]> {
+  async findAll(
+    @Req() req: any,
+    @Query('lastId') lastId: string,
+  ): Promise<{ continue: boolean; results: ChannelDocument[] }> {
     try {
-      return this.channelService.findAll(req.user._id);
+      return this.channelService.findAll(req.user._id, lastId);
     } catch (e: any) {
       throw new HttpException(
         `Error to get user channels: ${e}`,
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+  }
+
+  @Get(':channelId')
+  async findById(
+    @Req() req: any,
+    @Param('channelId') channelId: string,
+  ): Promise<ChannelDocument> {
+    try {
+      return this.channelService.findById(req.user._id, channelId);
+    } catch (e: any) {
+      throw new HttpException(
+        `Error to get channel detail: ${e}`,
         HttpStatus.BAD_REQUEST,
       );
     }
@@ -68,13 +91,30 @@ export class ChannelController {
   @UseGuards(NotificationMiddleware)
   async addParticipant(@Req() req: any): Promise<void> {
     try {
-      return this.channelService.addParticipant(
+      await this.channelService.addParticipant(
         req.notification.invitationId,
         req.user._id,
       );
     } catch (e: any) {
       throw new HttpException(
         `Error to add a participant: ${e}`,
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+  }
+
+  @Post('read/:channelId')
+  @UseGuards(FindChannelMiddleware, FindChatMiddleware)
+  async read(@Req() req: any): Promise<void> {
+    try {
+      return await this.channelService.readMessages(
+        req.channelDocument,
+        req.channelChat,
+        req.user._id,
+      );
+    } catch (e: any) {
+      throw new HttpException(
+        `Error to read messages: ${e}`,
         HttpStatus.BAD_REQUEST,
       );
     }
@@ -113,12 +153,12 @@ export class ChannelController {
   }
 
   @Delete('delete-chat/:channelId')
-  @UseGuards(AdminMiddleware)
-  async deleteChat(@Req() req: any, @Query('chatName') chatName: string) {
+  @UseGuards(AdminMiddleware, FindChatMiddleware)
+  async deleteChat(@Req() req: any) {
     try {
       return await this.channelService.deleteChat(
         req.channelDocument,
-        chatName,
+        req.chatId,
       );
     } catch (e: any) {
       throw new HttpException(

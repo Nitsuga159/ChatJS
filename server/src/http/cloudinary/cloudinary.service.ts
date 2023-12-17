@@ -33,4 +33,14 @@ export class CloudinaryService {
       image.pipe(uploadStream);
     });
   }
+
+  deleteImage(image_id: string) {
+    v2.uploader.destroy(image_id, (error, result) => {
+      if (error) {
+        console.error(error);
+      } else {
+        console.log('Imagen eliminada:', result);
+      }
+    });
+  }
 }

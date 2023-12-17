@@ -6,8 +6,8 @@ import {
   PER_PAGE_NOTIFICATIONS,
   ToNotification,
 } from 'src/database/notification-model/notification-model.type';
+import { WS_USER } from 'src/ws/ws.events';
 import { Ws } from 'src/ws/ws.gateway';
-import WS_EVENTS from 'src/ws/ws.type';
 
 const ObjectId = Types.ObjectId;
 
@@ -20,17 +20,12 @@ export class NotificationService {
 
   async find(
     userId: string | Types.ObjectId,
-    page: string,
+    lastId: string,
   ): Promise<{ continue: boolean; results: NotificationDocument[] }> {
     userId = new ObjectId(userId.toString());
 
-    const currentPage = Number.parseInt(page);
-
     const userNotifications: NotificationDocument[] =
-      await this.notificationModelService.find(
-        userId,
-        isNaN(currentPage) || currentPage < 1 ? 0 : currentPage - 1,
-      );
+      await this.notificationModelService.find(userId, lastId);
 
     return {
       continue: userNotifications.length === PER_PAGE_NOTIFICATIONS,
@@ -51,23 +46,15 @@ export class NotificationService {
     return notificationDocument;
   }
 
-  async create(toNotification: ToNotification): Promise<boolean> {
+  async create(toNotification: ToNotification): Promise<void> {
     const notification: NotificationDocument =
       await this.notificationModelService.create(toNotification);
 
     this.ws.emitToOne(
       toNotification.destined,
-      WS_EVENTS.NEW_NOTIFICATION,
+      WS_USER.NEW_NOTIFICATION,
       notification,
     );
-
-    return true;
-  }
-
-  async count(destined: string | Types.ObjectId): Promise<{ count: number }> {
-    destined = new ObjectId(destined.toString());
-
-    return await this.notificationModelService.count(destined);
   }
 
   async readed(
@@ -75,5 +62,12 @@ export class NotificationService {
     destined: string | Types.ObjectId,
   ): Promise<void> {
     await this.notificationModelService.readed(ids, destined);
+  }
+
+  async delete(notificationId: string, userId: Types.ObjectId): Promise<void> {
+    await this.notificationModelService.delete(
+      new Types.ObjectId(notificationId),
+      userId,
+    );
   }
 }

@@ -21,7 +21,7 @@ export const getChannelsReducer = (
   action: PayloadAction<ResponseGetChannels>
 ) => {
   const { results, continue: canContinue } = action.payload;
-  state.channel.lastId = results[results.length - 1]._id;
+  state.channel.lastId = results[results.length - 1]?._id || null;
   state.channel.continue = canContinue;
   state.channel.channels = [...state.channel.channels, ...results];
 };

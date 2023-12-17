@@ -9,8 +9,6 @@ import {
   RequestDeleteChannelMessage,
   ResponseDeleteChannelMessage,
 } from "./type";
-import defaultError from "@/helpers/defaultError";
-import { DefaultResponse } from "@/types/const.type";
 
 const deleteMessages = async ({
   chatId,
@@ -31,6 +29,7 @@ export const deleteMessagesReducer = (
   action: PayloadAction<ResponseDeleteChannelMessage>
 ) => {
   const { chatId, ids } = action.payload;
+  console.log(chatId, ids);
   const chat = state.chat.chats[chatId];
 
   if (chat) {

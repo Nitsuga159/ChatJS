@@ -1,8 +1,10 @@
 import {
   Controller,
+  Delete,
   Get,
   HttpException,
   HttpStatus,
+  Param,
   Post,
   Query,
   Req,
@@ -29,7 +31,10 @@ export class NotificationController {
     @Req() req: any,
   ): Promise<{ continue: boolean; results: NotificationDocument[] }> {
     try {
-      return await this.notificationService.find(req.user._id, req.query.page);
+      return await this.notificationService.find(
+        req.user._id,
+        req.query.lastId,
+      );
     } catch (e) {
       throw new HttpException(
         `Error to get user notifications: ${e}`,
@@ -42,11 +47,11 @@ export class NotificationController {
   @UseGuards(
     validateProps(PROPS_NEW_NOTIFICATION, 'query', true, 'notification'),
   )
-  async friendNotification(@Req() req: any): Promise<boolean> {
+  async friendNotification(@Req() req: any): Promise<void> {
     try {
       const destined = new Types.ObjectId(req.notification.destined);
 
-      return await this.notificationService.create({
+      await this.notificationService.create({
         destined,
         sender: req.user._id,
         type: NotificationType.FRIEND,
@@ -67,11 +72,11 @@ export class NotificationController {
   async channelNotification(
     @Req() req: any,
     @Query() query: { channelId: string },
-  ): Promise<boolean> {
+  ): Promise<void> {
     try {
       const destined = new Types.ObjectId(req.notification.destined);
 
-      return await this.notificationService.create({
+      await this.notificationService.create({
         destined,
         sender: req.user._id,
         type: NotificationType.CHANNEL,
@@ -85,16 +90,16 @@ export class NotificationController {
     }
   }
 
-  @Post('readed')
-  @UseGuards(
-    validateProps(PROPS_READ_NOTIFICATION, 'body', true, 'idsNotification'),
-  )
-  async readed(@Req() req: any): Promise<void> {
+  @Delete(':notificationId')
+  async delete(
+    @Req() req: any,
+    @Param('notificationId') notficationId: string,
+  ): Promise<void> {
     try {
-      await this.notificationService.readed(req.idsNotification, req.user._id);
+      await this.notificationService.delete(notficationId, req.user._id);
     } catch (e) {
       throw new HttpException(
-        `Error to read notifications: ${e}`,
+        `Error to delete notification: ${e}`,
         HttpStatus.BAD_REQUEST,
       );
     }

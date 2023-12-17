@@ -25,6 +25,13 @@ export class Friend {
     default: false,
   })
   haveChat: boolean;
+
+  @Prop({
+    type: Map,
+    of: Number,
+    required: true,
+  })
+  messagesCount: Map<Types.ObjectId, number>;
 }
 
 export const FriendSchema = SchemaFactory.createForClass(Friend);

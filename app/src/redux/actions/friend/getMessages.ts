@@ -31,7 +31,7 @@ export const getMessageReducer = (
 
   state.chat.chats[friendId] = {
     continue: canContinue,
-    lastId: results[0]._id,
+    lastId: results[0]?._id || null,
     messages: [...results, ...messages],
   };
 };

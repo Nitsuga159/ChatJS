@@ -16,6 +16,7 @@ export type NotificationDocument = Notification & Document;
       return ret;
     },
   },
+  timestamps: true,
 })
 export class Notification extends Document {
   @Prop({ type: Types.ObjectId, ref: User.name, required: true })
@@ -32,12 +33,6 @@ export class Notification extends Document {
     enum: NotificationType,
   })
   type: NotificationType;
-
-  @Prop({
-    type: Boolean,
-    default: false,
-  })
-  readed: boolean;
 
   token: string;
 }

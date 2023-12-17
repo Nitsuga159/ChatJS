@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { User, UserDocument } from './user-model';
 import { Model, Types } from 'mongoose';
-import { PER_PAGE_USER, ROUNDS_ENCRYPT, UserType } from './user-model.type';
+import { ROUNDS_ENCRYPT, UserType } from './user-model.type';
 import { hash } from 'bcrypt';
 
 @Injectable()
@@ -11,6 +11,8 @@ export class UserModelService {
     @InjectModel(User.name)
     private readonly userModel: Model<UserDocument>,
   ) {}
+
+  public static readonly PER_PAGE_USER = 5;
 
   async create(user: UserType): Promise<UserDocument | null> {
     const foundUser = await this.findByOtherData({
@@ -48,30 +50,36 @@ export class UserModelService {
     return await this.userModel.findOne(data).exec();
   }
 
-  async find(page: number): Promise<UserDocument[]> {
-    const skip = page * PER_PAGE_USER;
-
-    return await this.userModel
+  async find(lastId: string): Promise<UserDocument[]> {
+    let query = this.userModel
       .find({}, { password: 0, __v: 0 })
-      .skip(skip)
-      .limit(PER_PAGE_USER)
-      .exec();
+      .sort({ createdAt: 'desc' });
+
+    if (lastId) {
+      query = query.where('_id').lt(new Types.ObjectId(lastId) as any);
+    }
+
+    return await query.limit(UserModelService.PER_PAGE_USER).exec();
   }
 
   async findByUsername(
     username: string,
+    lastId: string,
     userId: Types.ObjectId,
   ): Promise<UserDocument[]> {
-    return await this.userModel
-      .find(
-        {
-          habilited: true,
-          _id: { $nin: userId },
-          username: { $regex: new RegExp(`^${username}`, 'i') },
-        },
-        { __v: 0, habilited: 0, password: 0 },
-      )
-      .limit(10)
-      .exec();
+    let query = this.userModel.find(
+      {
+        habilited: true,
+        _id: { $nin: userId },
+        username: { $regex: new RegExp(`${username}`, 'i') },
+      },
+      { __v: 0, habilited: 0, password: 0, mail: 0, description: 0 },
+    );
+
+    if (lastId) {
+      query = query.where('_id').gt(new Types.ObjectId(lastId) as any);
+    }
+
+    return await query.limit(UserModelService.PER_PAGE_USER).exec();
   }
 }

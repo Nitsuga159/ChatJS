@@ -5,6 +5,7 @@ import { WsModule } from 'src/ws/ws.module';
 import { UserModelModule } from 'src/database/user-model/user-model.module';
 import { FriendChatModelModule } from 'src/database/friend-chat-model/friend-chat-model.module';
 import { FriendModelModule } from 'src/database/friend-model/friend-model.module';
+import { CloudinaryModule } from '../cloudinary/cloudinary.module';
 
 @Module({
   imports: [
@@ -12,6 +13,7 @@ import { FriendModelModule } from 'src/database/friend-model/friend-model.module
     FriendModelModule,
     UserModelModule,
     WsModule,
+    CloudinaryModule,
   ],
   controllers: [FriendChatController],
   providers: [FriendChatService],

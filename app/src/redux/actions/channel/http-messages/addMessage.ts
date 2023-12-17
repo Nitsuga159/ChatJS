@@ -23,17 +23,30 @@ const addMessage = async ({
 
 export const addMessageReducer = (
   state: InitialStateChannels,
-  action: PayloadAction<ChannelMessage>
+  action: PayloadAction<{ message: ChannelMessage; isToSend: boolean }>
 ) => {
-  const { channelId, chatId } = action.payload;
+  const { message, isToSend } = action.payload;
+  const { channelId, chatId } = message;
   const { channelDetail } = state.channel;
   const { chats } = state.chat;
 
-  if (chats[chatId])
+  if (chats[chatId]) {
+    let messages = [];
+    if (isToSend) {
+      messages = [...chats[chatId].messages, message];
+    } else {
+      messages = [...chats[chatId].messages];
+      let foundMessage = false;
+
+      for (let i = messages.length - 1; i >= 0 && !foundMessage; i--)
+        if (messages[i].clientId === message.clientId) messages[i] = message;
+    }
+
     chats[chatId] = {
       ...chats[chatId],
-      messages: [...chats[chatId].messages, action.payload],
+      messages,
     };
+  }
 
   if (channelDetail?._id === channelId) {
     const indexChat = channelDetail.chats.findIndex(

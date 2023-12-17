@@ -12,11 +12,7 @@ import { UserMiddleware } from '../../database/user-model/user-model.middleware'
 import { FriendChatService } from './friend-chat.service';
 import validateProps from 'src/middlewares/validate-props/validateProps.middleware';
 import { FriendMiddleware } from 'src/database/friend-model/friend-model.middleware';
-import {
-  PROPS_DELETE_MESSAGES,
-  PROPS_NEW_MESSAGE,
-  PROPS_READ_MESSAGES,
-} from 'src/database/types/message.type';
+import { PROPS_DELETE_MESSAGES } from 'src/database/types/message.type';
 import { FriendChatDocument } from 'src/database/friend-chat-model/friend-chat-model';
 import { FriendDocument } from 'src/database/friend-model/friend-model';
 
@@ -32,7 +28,7 @@ export class FriendChatController {
     try {
       return await this.friendChatService.get(
         req.friendDocument._id,
-        req.query.page,
+        req.query.lastId,
       );
     } catch (e: any) {
       throw new HttpException(
@@ -42,24 +38,16 @@ export class FriendChatController {
     }
   }
 
-  @Get('count/:friendId')
-  async count(@Req() req: any): Promise<{ count: number }> {
-    try {
-      return await this.friendChatService.count(
-        req.friendDocument._id,
-        req.user._id,
-      );
-    } catch (e: any) {
-      throw new HttpException(
-        `Error counting messages: ${e}`,
-        HttpStatus.BAD_REQUEST,
-      );
-    }
-  }
-
   @Post('message/:friendId')
-  @UseGuards(validateProps(PROPS_NEW_MESSAGE, 'body', false, 'message'))
-  async add(@Req() req: any) {
+  @UseGuards(
+    validateProps(
+      FriendChatController.PROPS_NEW_MESSAGE,
+      'body',
+      false,
+      'message',
+    ),
+  )
+  async add(@Req() req: any): Promise<void> {
     try {
       const friendDocument = req.friendDocument as FriendDocument;
 
@@ -68,11 +56,17 @@ export class FriendChatController {
         await friendDocument.save();
       }
 
-      return await this.friendChatService.add(friendDocument._id, {
-        ...req.message,
-        sender: req.user._id,
-      });
+      await this.friendChatService.add(
+        friendDocument._id,
+        req.user._id,
+        req.query.clientId,
+        {
+          ...req.message,
+          sender: req.user._id,
+        },
+      );
     } catch (e: any) {
+      console.log(e);
       throw new HttpException(
         `Error adding friend message: ${e}`,
         HttpStatus.BAD_REQUEST,
@@ -80,29 +74,12 @@ export class FriendChatController {
     }
   }
 
-  @Post('read/:friendId')
-  @UseGuards(validateProps(PROPS_READ_MESSAGES, 'body', true, 'read'))
-  async addReaded(@Req() req: any) {
-    try {
-      return await this.friendChatService.addReaded(
-        req.read.ids,
-        req.friendDocument,
-        req.user._id,
-      );
-    } catch (e: any) {
-      throw new HttpException(
-        `Error adding readed friend message: ${e}`,
-        HttpStatus.BAD_REQUEST,
-      );
-    }
-  }
-
   @Delete('message/:friendId')
-  @UseGuards(validateProps(PROPS_DELETE_MESSAGES, 'body', true, 'delete'))
+  @UseGuards(validateProps(PROPS_DELETE_MESSAGES, 'query', true, 'delete'))
   async delete(@Req() req: any) {
     try {
       return await this.friendChatService.delete(
-        req.delete.ids,
+        req.delete.ids.split(','),
         req.friendDocument,
         req.user._id,
       );
@@ -113,4 +90,6 @@ export class FriendChatController {
       );
     }
   }
+
+  private static readonly PROPS_NEW_MESSAGE = ['value', 'photos'];
 }

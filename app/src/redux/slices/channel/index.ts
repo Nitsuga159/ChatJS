@@ -18,15 +18,15 @@ import { addMessageReducer } from "@/redux/actions/channel/http-messages/addMess
 import { getMessagesReducer } from "@/redux/actions/channel/http-messages/getMessage";
 import { deleteMessagesReducer } from "@/redux/actions/channel/http-messages/deleteMessage";
 import setCurrentChannelChatId from "@/redux/actions/channel/local/setCurrentChannelChatId";
-import setMessagesToSend from "@/redux/actions/channel/local/addMessageToSend";
-import errorMessageToSend from "@/redux/actions/channel/local/errorMessageToSend";
-import removeMessageToSend from "@/redux/actions/channel/local/removeMessageToSend";
-import resendMessage from "@/redux/actions/channel/local/resendMessage";
+import addChannel from "@/redux/actions/channel/local/addChannel";
+import checkLimitMessages from "@/redux/actions/channel/local/checkLimitMessages";
 
 const initialState: InitialStateChannels = {
   channel: { channels: [], channelDetail: null, continue: true, lastId: null },
-  chat: { chats: {}, currentChatId: null },
-  messagesToSend: [],
+  chat: {
+    chats: {},
+    currentChatId: null,
+  },
 };
 
 const channelSlice = createSlice({
@@ -36,7 +36,7 @@ const channelSlice = createSlice({
     getMessages: getMessagesReducer,
     getChannels: getChannelsReducer,
     getChannelDetail: getChannelDetailReducer,
-    addChannel: createChannelReducer,
+    createChannel: createChannelReducer,
     addChat: addChatReducer,
     addMessage: addMessageReducer,
     deleteMessages: deleteMessagesReducer,
@@ -46,10 +46,20 @@ const channelSlice = createSlice({
     addParticipantToChannel: addParticipantToChannelReducer,
     addChannelToParticipant: addChannelToParticipantReducer,
     setCurrentChannelChatId,
-    setMessagesToSend,
-    removeMessageToSend,
-    errorMessageToSend,
-    resendMessage,
+    addChannel,
+    checkLimitMessages,
+    reset(state) {
+      state.channel = {
+        channels: [],
+        channelDetail: null,
+        continue: true,
+        lastId: null,
+      };
+      state.chat = {
+        chats: {},
+        currentChatId: null,
+      };
+    },
   },
 });
 
@@ -57,5 +67,3 @@ export const { actions, reducer } = channelSlice;
 
 export const getChannelState = (state: RootState) => state.channel.channel;
 export const getChatChannelsState = (state: RootState) => state.channel.chat;
-export const getMessagesToSendChannel = (state: RootState) =>
-  state.channel.messagesToSend;

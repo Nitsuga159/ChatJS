@@ -6,6 +6,7 @@ import { Channel } from '../channel-model/channel.model';
 type MessageType = {
   value: string;
   sender: string;
+  photos: string[];
 };
 
 export type ChannelChatDocument = ChannelChat & Document;
@@ -17,6 +18,9 @@ export class ChannelChat {
 
   @Prop({ type: Types.ObjectId, ref: Channel.name, required: true })
   channelId: Types.ObjectId;
+
+  @Prop({ type: String, required: true })
+  clientId: string;
 
   @Prop({
     type: {
@@ -30,10 +34,6 @@ export class ChannelChat {
         validate: { validator: (v: string[]) => v.length <= 3 },
       },
       sender: { type: Types.ObjectId, ref: User.name, required: true },
-      readed: {
-        type: [{ type: Types.ObjectId, ref: User.name, required: true }],
-        default: [],
-      },
     },
     _id: false,
     required: true,

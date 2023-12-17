@@ -10,7 +10,7 @@ import { ChannelDocument } from './channel.model';
 import { Types } from 'mongoose';
 
 @Injectable()
-export class FindMiddleware implements CanActivate {
+export class FindChannelMiddleware implements CanActivate {
   constructor(private readonly channelModelService: ChannelModelService) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
@@ -76,15 +76,17 @@ export class FindChatMiddleware implements CanActivate {
   async canActivate(context: ExecutionContext): Promise<boolean> {
     try {
       const req: any = context.switchToHttp().getRequest();
-      const { chatName } = req.query;
+      const { chatId } = req.query;
+      const { chats } = req.channelDocument as ChannelDocument;
 
-      const chatId: Types.ObjectId = (
-        req.channelDocument as ChannelDocument
-      ).chats.get(chatName);
+      const indexChat: number = chats.findIndex(
+        (chat) => chat._id.toString() === chatId,
+      );
 
-      if (!chatId) throw 'Invalid channel';
+      if (indexChat < 0) throw 'Invalid channel';
 
-      req.chatId = chatId;
+      req.chatId = new Types.ObjectId(chatId);
+      req.channelChat = chats[indexChat];
 
       return true;
     } catch (e) {

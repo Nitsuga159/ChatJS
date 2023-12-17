@@ -2,18 +2,41 @@ import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Channel, ChannelDocument } from './channel.model';
 import { Model, Types } from 'mongoose';
+import { ChannelChatType } from './channel-model.type';
 
 @Injectable()
 export class ChannelModelService {
+  private static readonly PER_PAGE_CHANNELS: number = 5;
+
   constructor(
     @InjectModel(Channel.name)
     private readonly channelModel: Model<ChannelDocument>,
   ) {}
 
-  async findAll(userId: string | Types.ObjectId): Promise<ChannelDocument[]> {
-    return await this.channelModel
-      .find({ participants: { $in: userId } }, { __v: 0 })
-      .populate('admin participants', 'username photo color');
+  async findByUser(admin: Types.ObjectId | string): Promise<ChannelDocument[]> {
+    return await this.channelModel.find({ admin });
+  }
+
+  async findAll(
+    userId: string | Types.ObjectId,
+    lastId: string,
+  ): Promise<{ continue: boolean; results: ChannelDocument[] }> {
+    let query = this.channelModel
+      .find({ participants: { $in: userId } })
+      .select('name photo');
+
+    if (lastId) {
+      query = query.where('_id').gt(new Types.ObjectId(lastId) as any);
+    }
+
+    const results = await query
+      .limit(ChannelModelService.PER_PAGE_CHANNELS)
+      .exec();
+
+    return {
+      continue: results.length === ChannelModelService.PER_PAGE_CHANNELS,
+      results,
+    };
   }
 
   async findById(
@@ -30,11 +53,7 @@ export class ChannelModelService {
   }
 
   async findByOtherData(data: any): Promise<ChannelDocument | null> {
-    return await this.channelModel.findOne(data);
-  }
-
-  async count(admin: string | Types.ObjectId): Promise<number> {
-    return await this.channelModel.countDocuments({ admin });
+    return await this.channelModel.findOne(data, { __v: 0 }).exec();
   }
 
   async create(data: {
@@ -82,31 +101,44 @@ export class ChannelModelService {
   async addChat(
     channelDocument: ChannelDocument,
     chatName: string,
-  ): Promise<Types.ObjectId> {
-    if (channelDocument.chats.size === 5) throw 'Limit chat exceded';
-    if (channelDocument.chats.get(chatName)) throw 'The chat already exists';
+  ): Promise<ChannelChatType> {
+    if (channelDocument.chats.length === 5) throw 'Limit chat exceded';
 
     const chatId = new Types.ObjectId();
+    const messagesCount = new Map<Types.ObjectId, number>();
 
-    channelDocument.chats.set(chatName, chatId);
+    channelDocument.participants.forEach((id) => messagesCount.set(id, 0));
+
+    const chat = { _id: chatId, name: chatName, messagesCount };
+
+    channelDocument.chats.push(chat);
+
+    await channelDocument.save();
+
+    return chat;
+  }
+
+  async deleteChat(
+    channelDocument: ChannelDocument,
+    chatId: Types.ObjectId,
+  ): Promise<Types.ObjectId> {
+    channelDocument.chats = channelDocument.chats.filter(
+      (chat) => !chat._id.equals(chatId),
+    );
 
     await channelDocument.save();
 
     return chatId;
   }
 
-  async deleteChat(
+  async readMessages(
     channelDocument: ChannelDocument,
-    chatName: string,
-  ): Promise<Types.ObjectId> {
-    const chatId = channelDocument.chats.get(chatName);
-
-    if (!chatId) throw 'Invalid chat name in this channel';
-
-    channelDocument.chats.delete(chatName);
-
-    await channelDocument.save();
-
-    return chatId;
+    channelChat: ChannelChatType,
+    userId: Types.ObjectId,
+  ): Promise<void> {
+    if (channelDocument.participants.some((id) => id.equals(userId))) {
+      channelChat.messagesCount.set(userId, 0);
+      await channelDocument.save();
+    }
   }
 }

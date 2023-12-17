@@ -5,8 +5,16 @@ export interface FriendType extends Friend {
   _id: Types.ObjectId;
 }
 
-export interface FriendResponse extends Pick<FriendDocument, '_id'> {
-  friend: Types.ObjectId;
+export interface FriendDatabaseResponse {
+  _id: Types.ObjectId;
+  haveChat: boolean;
+  messagesCount: number;
+  friend: {
+    _id: Types.ObjectId;
+    username: string;
+    color: string;
+    photo: string | null;
+  };
 }
 
 export const PER_PAGE_FRIEND: number = 35;

@@ -6,7 +6,6 @@ import {
   RequestDeleteFriendMessage,
   ResponseDeleteFriendMessage,
 } from "./type";
-import defaultError from "@/helpers/defaultError";
 import { DefaultResponse } from "@/types/const.type";
 
 const deleteMessages = async ({
@@ -32,7 +31,7 @@ export const deleteMessagesReducer = (
   const idsSet = new Set(ids);
 
   state.chat.chats[friendId].messages = messages.filter(
-    ({ _id }) => !idsSet.has(_id)
+    ({ _id }) => !idsSet.has(_id!)
   );
 };
 

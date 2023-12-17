@@ -1,11 +1,11 @@
 import { Injectable } from '@nestjs/common';
-import { Types, isValidObjectId } from 'mongoose';
+import { Types } from 'mongoose';
 import { ChannelModelService } from 'src/database/channel-model/channel-model.service';
+import { ChannelChatType } from 'src/database/channel-model/channel-model.type';
 import { ChannelDocument } from 'src/database/channel-model/channel.model';
-import { NotificationModelService } from 'src/database/notification-model/notification-model.service';
 import { UserModelService } from 'src/database/user-model/user-model.service';
+import { WS_CHANNEL } from 'src/ws/ws.events';
 import { Ws } from 'src/ws/ws.gateway';
-import WS_EVENTS from 'src/ws/ws.type';
 
 const ObjectId = Types.ObjectId;
 
@@ -17,8 +17,31 @@ export class ChannelService {
     private readonly ws: Ws,
   ) {}
 
-  async findAll(userId: Types.ObjectId): Promise<ChannelDocument[]> {
-    return await this.channelModelService.findAll(userId);
+  async findAll(
+    userId: Types.ObjectId,
+    lastId: string,
+  ): Promise<{ continue: boolean; results: ChannelDocument[] }> {
+    return await this.channelModelService.findAll(userId, lastId);
+  }
+
+  async findById(userId: Types.ObjectId, channelId: string): Promise<any> {
+    const channelDocument = await this.channelModelService.findByOtherData({
+      _id: channelId,
+      participants: { $in: userId },
+    });
+
+    if (!channelDocument) throw 'Channel not found';
+
+    const chats = channelDocument.chats.map(
+      ({ _id, createdAt, messagesCount, name }) => ({
+        _id,
+        createdAt,
+        name,
+        messagesCount: messagesCount.get(userId),
+      }),
+    );
+
+    return { ...channelDocument.toObject(), chats };
   }
 
   async create(data: {
@@ -29,9 +52,11 @@ export class ChannelService {
   }): Promise<ChannelDocument> {
     data.admin = new ObjectId(data.admin.toString());
 
-    const countUserChannels = await this.channelModelService.count(data.admin);
+    const countUserChannels = await this.channelModelService.findByUser(
+      data.admin,
+    );
 
-    if (countUserChannels === 5) throw 'Channel limit exceeded';
+    if (countUserChannels.length === 5) throw 'Channel limit exceeded';
 
     return await this.channelModelService.create(data);
   }
@@ -44,7 +69,7 @@ export class ChannelService {
 
     this.ws.emitToGroup(
       channel.participants,
-      WS_EVENTS.UPDATE_CHANNEL,
+      WS_CHANNEL.UPDATE_CHANNEL,
       updatedChannel,
     );
   }
@@ -63,8 +88,33 @@ export class ChannelService {
       this.userModelService.findById(userId),
     ]);
 
-    this.ws.emitToGroup(channel.participants, WS_EVENTS.ADD_PARTICIPANT, user);
-    this.ws.emitToOne(userId, WS_EVENTS.NEW_CHANNEL, channel);
+    channel.chats.forEach((chat) =>
+      chat.messagesCount.set(userId as Types.ObjectId, 0),
+    );
+
+    await channel.save();
+
+    const filterParticipants = new Set(
+      channel.participants.map((p) => p.toString()),
+    );
+
+    filterParticipants.delete(userId.toString());
+
+    this.ws.emitToGroup(
+      filterParticipants as any,
+      WS_CHANNEL.ADD_CHANNEL_PARTICIPANT,
+      {
+        _id: user._id,
+        username: user.username,
+        color: user.color,
+        photo: user.photo,
+      },
+    );
+    this.ws.emitToOne(userId, WS_CHANNEL.NEW_CHANNEL, {
+      _id: channel._id,
+      name: channel.name,
+      photo: channel.photo,
+    });
   }
 
   async deleteParticipant(
@@ -80,7 +130,7 @@ export class ChannelService {
 
     this.ws.emitToGroup(
       channelDocument.participants,
-      WS_EVENTS.DELETE_PARTICIPANT,
+      WS_CHANNEL.DELETE_CHANNEL_PARTICIPANT,
       userId,
     );
   }
@@ -89,31 +139,40 @@ export class ChannelService {
     channelDocument: ChannelDocument,
     chatName: string,
   ): Promise<void> {
-    const chatId = await this.channelModelService.addChat(
+    const chat = await this.channelModelService.addChat(
       channelDocument,
       chatName,
     );
 
     this.ws.emitToGroup(
       channelDocument.participants,
-      WS_EVENTS.ADD_CHAT_CHANNEL,
-      { chatName, chatId },
+      WS_CHANNEL.ADD_CHANNEL_CHAT,
+      { chat: { ...chat, messagesCount: 0 }, channelId: channelDocument._id },
     );
   }
 
   async deleteChat(
     channelDocument: ChannelDocument,
-    chatName: string,
+    chatId: Types.ObjectId,
   ): Promise<void> {
-    const chatId = await this.channelModelService.deleteChat(
-      channelDocument,
-      chatName,
-    );
+    await this.channelModelService.deleteChat(channelDocument, chatId);
 
     this.ws.emitToGroup(
       channelDocument.participants,
-      WS_EVENTS.DELETE_CHAT_CHANNEL,
-      { chatName, chatId },
+      WS_CHANNEL.DELETE_CHANNEL_CHAT,
+      { chatId, channelId: channelDocument._id },
+    );
+  }
+
+  async readMessages(
+    channelDocument: ChannelDocument,
+    channelChat: ChannelChatType,
+    userId: Types.ObjectId,
+  ): Promise<void> {
+    await this.channelModelService.readMessages(
+      channelDocument,
+      channelChat,
+      userId,
     );
   }
 }

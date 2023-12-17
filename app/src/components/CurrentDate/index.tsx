@@ -3,6 +3,7 @@ import styled from "styled-components";
 
 const Container = styled.p`
   position: relative;
+  margin: 1rem 0;
   padding: .4rem 0;
   &::before {
     content: '';

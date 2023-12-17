@@ -9,8 +9,6 @@ export default function GetSize({ children, callback }: GetSizeProps) {
   const sizeRef = useRef<HTMLDivElement | null>(null);
   const [gotSize, setGotSize] = useState<boolean>(false);
 
-  useEffect(() => setGotSize(false), [children]);
-
   useEffect(() => {
     if (sizeRef.current && !gotSize) {
       const { width, height } = sizeRef.current.getBoundingClientRect();

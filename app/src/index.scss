@@ -37,7 +37,17 @@
   box-sizing: border-box;
   margin: 0;
   padding: 0;
+  border: none;
+  outline: none;
   user-select: none;
+}
+
+button {
+  cursor: pointer;
+}
+
+.button:active, button:active {
+  transform: translateY(1.5px);
 }
 
 ::-webkit-scrollbar {

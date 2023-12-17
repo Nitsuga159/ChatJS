@@ -27,7 +27,7 @@ export class NotificationMiddleware implements CanActivate {
         ENVS.JWT_NOTIFICATION_SECRET,
       );
 
-      await this.notificationModelService.delete(notification.id);
+      await this.notificationModelService.delete(notification.id, req.user._id);
 
       req.notification = notification;
 

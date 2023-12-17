@@ -1,3 +1,5 @@
+import { Message } from "@/types/chat.type";
+
 export interface Friend {
   _id: string;
   haveChat: boolean;
@@ -9,26 +11,13 @@ export interface Friend {
   };
 }
 
-export interface FriendMessage {
-  _id: string;
-  clientId: string;
-  createdAt: string;
-  updatedAt: string;
-  message: {
-    value: string;
-    photos: string[];
-    sender: {
-      _id: string;
-      username: string;
-      color: string;
-      photo?: string;
-    };
-  };
+export interface FriendMessage extends Message {
+  friendId: string;
 }
 
 export interface FriendChat {
   continue: boolean;
-  lastId: string;
+  lastId: string | null;
   messages: FriendMessage[];
 }
 

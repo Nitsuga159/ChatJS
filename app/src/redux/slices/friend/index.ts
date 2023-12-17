@@ -27,6 +27,10 @@ const friendSlice = createSlice({
     setCurrentChatId,
     deleteMessages: deleteMessagesReducer,
     resetMessageCount: resetMessageCountReducer,
+    reset(state) {
+      state.friend = { friends: [], lastId: null, continue: true };
+      state.chat = { chats: {}, currentChatId: null };
+    },
   },
 });
 

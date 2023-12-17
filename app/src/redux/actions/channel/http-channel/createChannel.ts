@@ -30,8 +30,7 @@ export const createChannelReducer = (
 
   const { _id, name, photo } = channel;
 
-  channelState.channelDetail = channel;
-  channelState.channels = [...channelState.channels, { _id, name, photo }];
+  channelState.channels = [{ _id, name, photo }, ...channelState.channels];
 };
 
 export default createChannel;

@@ -43,9 +43,12 @@
     "passport-google-oauth20": "^2.0.0",
     "passport-jwt": "^4.0.1",
     "passport-local": "^1.0.0",
+    "peer": "^1.0.0",
+    "peerjs": "^1.4.7",
     "reflect-metadata": "^0.1.13",
     "rimraf": "^3.0.2",
     "rxjs": "^7.2.0",
+    "socket.io": "^4.6.1",
     "uuid": "^9.0.0",
     "ws": "^8.13.0"
   },

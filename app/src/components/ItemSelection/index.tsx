@@ -21,6 +21,7 @@ export default function ItemSelection({ children, name, onClick }: ItemSelection
       onClick={() => onClick()}
       name={name}
       label={labelItem}
+      className="button"
     >
       {children}
     </ItemSelectionContainer>

@@ -11,16 +11,24 @@ export class User {
   @IsString()
   mail: string;
 
-  @Prop({ unique: true, required: true })
+  @Prop({ required: true })
   @IsString()
   username: string;
 
-  @Prop({ unique: true })
+  @Prop({ required: true })
   @IsString()
   password: string;
 
   @Prop({ required: true, default: true })
   habilited: boolean;
+
+  @Prop({
+    default: null,
+    validators: {
+      validate: (v: string) => v.length <= 300,
+    },
+  })
+  description: string;
 
   @Prop({ type: String, default: null })
   photo: string;

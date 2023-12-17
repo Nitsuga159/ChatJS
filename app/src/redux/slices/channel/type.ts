@@ -1,4 +1,5 @@
 import { RequestAddChannelMessage } from "@/redux/actions/channel/http-messages/type";
+import { Message } from "@/types/chat.type";
 import { SimpleUser } from "@/types/user.type";
 
 export interface DefaultRequestChannel {
@@ -25,23 +26,9 @@ export interface ChannelDetail extends SimpleChannel {
   chats: SimpleChannelChat[];
 }
 
-export interface ChannelMessage {
-  _id: string;
+export interface ChannelMessage extends Message {
   chatId: string;
-  clientId: string;
   channelId: string;
-  createdAt: string;
-  updatedAt: string;
-  message: {
-    value: string;
-    photos: string[];
-    sender: {
-      _id: string;
-      username: string;
-      color: string;
-      photo?: string;
-    };
-  };
 }
 
 export interface ChannelChat {
@@ -72,5 +59,4 @@ export interface InitialStateChannels {
       [key: string]: ChannelChat;
     };
   };
-  messagesToSend: IMessagesToSend[];
 }
