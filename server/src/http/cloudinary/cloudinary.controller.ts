@@ -20,7 +20,7 @@ export class CloudinaryController {
   @Post('upload')
   @UseInterceptors(
     FilesInterceptor('image', 3, {
-      fileFilter: (req, file, callback) => {
+      fileFilter: (_req, file, callback) => {
         if (!file.originalname.match(/\.(jpg|jpeg|png|gif)$/)) {
           return callback(new Error('Only image files are allowed!'), false);
         }

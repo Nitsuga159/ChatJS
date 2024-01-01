@@ -7,17 +7,7 @@ import ENVS from 'src/envs';
 
 export type NotificationDocument = Notification & Document;
 
-@Schema({
-  toObject: {
-    getters: true,
-    transform: function (doc, ret, options) {
-      delete ret.id;
-      delete ret.invitationId;
-      return ret;
-    },
-  },
-  timestamps: true,
-})
+@Schema({ timestamps: true })
 export class Notification extends Document {
   @Prop({ type: Types.ObjectId, ref: User.name, required: true })
   sender: Types.ObjectId;
@@ -31,19 +21,9 @@ export class Notification extends Document {
   @Prop({
     type: String,
     enum: NotificationType,
+    required: true
   })
   type: NotificationType;
-
-  token: string;
 }
 
-const NotificationSchema = SchemaFactory.createForClass(Notification);
-
-NotificationSchema.virtual('token').get(function (this: NotificationDocument) {
-  return sign(
-    { invitationId: this.invitationId, id: this._id },
-    ENVS.JWT_NOTIFICATION_SECRET,
-  );
-});
-
-export { NotificationSchema };
+export const NotificationSchema = SchemaFactory.createForClass(Notification);

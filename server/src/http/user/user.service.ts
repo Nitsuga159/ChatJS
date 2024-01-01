@@ -1,12 +1,12 @@
-import { Injectable } from '@nestjs/common';
+import { HttpStatus, Injectable } from '@nestjs/common';
 import { compare, hash } from 'bcrypt';
 import { sign } from 'jsonwebtoken';
 import {
   ChangePasswordType,
   FindUserResponse,
   LoginRequest,
-  LoginResponseType,
   ROUNDS_ENCRYPT,
+  UserRequest,
   UserType,
 } from '../../database/user-model/user-model.type';
 import { UserModelService } from 'src/database/user-model/user-model.service';
@@ -14,6 +14,8 @@ import { UserDocument } from 'src/database/user-model/user-model';
 import ENVS from 'src/envs';
 import { Types } from 'mongoose';
 import { Ws } from 'src/ws/ws.gateway';
+import { DefaultHttpException } from 'src/exceptions/DefaultHttpException';
+import filterObject from 'src/utils/filterObject';
 
 const ObjectId = Types.ObjectId;
 
@@ -24,33 +26,29 @@ export class UsersService {
     private readonly ws: Ws,
   ) {}
 
-  async create(user: UserType): Promise<UserDocument> {
+  async create(user: UserRequest): Promise<UserDocument> {
     const createdUser = await this.userModelService.create(user);
 
-    if (!createdUser) throw 'Failed to create user';
+    if (!createdUser) {
+      throw new DefaultHttpException({ status: HttpStatus.CONFLICT, message: 'Failed to create user' })
+    }
 
     return createdUser;
   }
 
-  async login(data: LoginRequest): Promise<LoginResponseType> {
+  async login(data: LoginRequest) {
+
     const user: any = await this.findByOtherData({ mail: data.mail });
 
-    if (!user) throw 'Invalid user';
-
-    if (!(await compare(data.password, user.password)) && user.habilited)
-      throw 'Invalid user';
+    if (!(await compare(data.password, user.password)) && user.habilited) {
+      throw new DefaultHttpException({ status: HttpStatus.BAD_REQUEST, message: 'Invalid User' })
+    }
 
     if (this.ws.isConnected(user._id)) throw 'User is already connected';
 
-    const { username, mail, color, photo, _id } = user;
-    return {
-      username,
-      mail,
-      color,
-      photo,
-      _id,
-      accessToken: sign({ _id }, ENVS.JWT_USER_SECRET),
-    };
+    const { _id } = user;
+
+    return { accessToken: sign({ _id }, ENVS.JWT_USER_SECRET) }
   }
 
   async loginToken({
@@ -59,7 +57,7 @@ export class UsersService {
     color,
     photo,
     _id,
-  }: any): Promise<LoginResponseType> {
+  }: any) {
     if (this.ws.isConnected(_id)) throw 'User is already connected';
 
     return {
@@ -75,21 +73,19 @@ export class UsersService {
   async findByOtherData(data: any): Promise<UserDocument> {
     const foundUser = await this.userModelService.findByOtherData(data);
 
-    if (!foundUser) throw 'user not found';
+    if (!foundUser) throw new DefaultHttpException({ status: 400, message: 'Invalid credencials' });
 
     return foundUser;
   }
 
-  async findById(id: string | Types.ObjectId): Promise<UserDocument> {
-    const foundUser = await this.userModelService.findById(id);
-
-    if (!foundUser) throw 'user not found';
+  async findById(id: string | Types.ObjectId, fields: {} = {}): Promise<UserDocument> {
+    const foundUser = await this.userModelService.findById(id, fields);
 
     return foundUser;
   }
 
-  async find(lastId: string): Promise<FindUserResponse> {
-    const users = await this.userModelService.find(lastId);
+  async find(lastId: string, _fields: {} = {}): Promise<FindUserResponse> {
+    const users = await this.userModelService.find(lastId, _fields);
 
     return {
       continue: users.length === UserModelService.PER_PAGE_USER,
@@ -97,30 +93,30 @@ export class UsersService {
     };
   }
 
-  async update(id: string | Types.ObjectId, data: any): Promise<UserDocument> {
-    if (!Object.values(data).length) throw 'No data to change';
+  async update(id: string | Types.ObjectId, data: any, fields: {} = {}): Promise<UserDocument> {
+    if (!Object.values(data).length) {
+      throw new DefaultHttpException({ status: HttpStatus.BAD_REQUEST, message: 'Invalid data' })
+    }
 
     id = new ObjectId(id.toString());
 
     const updatedUser = (
-      await this.userModelService.findByIdAndUpdate(id, data)
+      await this.userModelService.findByIdAndUpdate(id, data, fields)
     ).toObject();
-
-    delete updatedUser.password;
-    delete updatedUser.__v;
 
     return updatedUser;
   }
 
   async changePassword(
-    user: UserType,
+    _id: string,
     { password, newPassword }: ChangePasswordType,
   ): Promise<boolean> {
-    const foundedUser = await this.userModelService.findById(user._id);
+    const foundedUser = await this.userModelService.findById(_id);
 
-    if (!(await compare(password, foundedUser.password)))
-      throw 'Invalid user to change data';
-
+    if (!(await compare(password, foundedUser.password))) {
+      throw new DefaultHttpException({ status: HttpStatus.NOT_ACCEPTABLE, message: 'Invalid password' })
+    }
+    
     foundedUser.password = await hash(newPassword, ROUNDS_ENCRYPT);
 
     await foundedUser.save();
@@ -132,16 +128,18 @@ export class UsersService {
     username: string,
     lastId: string,
     userId: Types.ObjectId,
-  ): Promise<{ result: UserDocument[]; continue: boolean }> {
-    const result = await this.userModelService.findByUsername(
+    fields: {} = {}
+  ): Promise<{ users: UserDocument[]; continue: boolean }> {
+    const users = await this.userModelService.findByUsername(
       username,
       lastId,
       userId,
+      fields
     );
 
     return {
-      result,
-      continue: result.length === UserModelService.PER_PAGE_USER,
+      users,
+      continue: users.length === UserModelService.PER_PAGE_USER,
     };
   }
 }

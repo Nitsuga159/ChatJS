@@ -1,9 +1,9 @@
-import { Injectable } from '@nestjs/common';
+import { HttpStatus, Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { Notification, NotificationDocument } from './notification-model';
-import { NotificationType, ToNotification } from './notification-model.type';
-import { PER_PAGE_MESSAGES } from '../types/message.type';
+import { NotificationType, NotificationRequest, PER_PAGE_NOTIFICATIONS } from './notification-model.type';
+import { DefaultHttpException } from 'src/exceptions/DefaultHttpException';
 
 @Injectable()
 export class NotificationModelService {
@@ -11,6 +11,14 @@ export class NotificationModelService {
     @InjectModel(Notification.name)
     private readonly notificationModel: Model<NotificationDocument>,
   ) {}
+
+  async notificationExists({ sender, destined, invitationId, type }: NotificationRequest) {
+    return await this.notificationModel.exists({ sender, destined, invitationId, type })
+  }
+
+  async exists(options) {
+    return await this.notificationModel.exists(options)
+  }
 
   async findById(id: Types.ObjectId): Promise<NotificationDocument> {
     return await this.notificationModel.findById(id, {
@@ -23,11 +31,11 @@ export class NotificationModelService {
 
   async find(
     destined: Types.ObjectId,
-    lastId: string,
+    lastId?: string,
+    fields: {} = {}
   ): Promise<NotificationDocument[]> {
     let query = this.notificationModel
-      .find({ destined }, { __v: 0, readed: 0, destined: 0 })
-      .sort({ createdAt: 'desc' })
+      .find({ destined }, fields)
       .populate('sender', 'username photo color');
 
     if (lastId) {
@@ -35,31 +43,32 @@ export class NotificationModelService {
     }
 
     const notifications: NotificationDocument[] = await query
-      .limit(PER_PAGE_MESSAGES)
+      .limit(PER_PAGE_NOTIFICATIONS)
       .exec();
 
     return notifications.map((notification) => notification.toObject());
   }
 
-  async create(data: ToNotification): Promise<NotificationDocument> {
-    let createdNotification = new this.notificationModel(data);
-    createdNotification = (await createdNotification.save()).toObject();
+  async create(data: NotificationRequest, fields: {} = {}): Promise<NotificationDocument> {
+    const createdNotification = new this.notificationModel(data, fields);
 
-    delete createdNotification.__v;
-    delete createdNotification.destined;
-    delete createdNotification.invitationId;
-
-    return createdNotification;
+    return (await createdNotification.save()).toObject();
   }
 
   async delete(
     notificationId: Types.ObjectId,
     userId: Types.ObjectId,
-  ): Promise<void> {
-    await this.notificationModel.findOneAndDelete({
+  ) {
+    const deletedNotification = await this.notificationModel.findOneAndDelete({
       _id: notificationId,
       destined: userId,
-    });
+    }, { projection: { __v: 0 } })
+
+    if(!deletedNotification) {
+      throw new DefaultHttpException({ status: HttpStatus.NOT_FOUND, message: 'Notification doesn\'t exists' })
+    }
+
+    return deletedNotification.toObject()
   }
 
   async readed(

@@ -1,41 +1,35 @@
-import { Injectable } from '@nestjs/common';
+import { HttpStatus, Injectable } from '@nestjs/common';
 import { Types } from 'mongoose';
+import { ChannelModelService } from 'src/database/channel-model/channel-model.service';
+import { FriendModelService } from 'src/database/friend-model/friend-model.service';
 import { NotificationDocument } from 'src/database/notification-model/notification-model';
 import { NotificationModelService } from 'src/database/notification-model/notification-model.service';
-import {
-  PER_PAGE_NOTIFICATIONS,
-  ToNotification,
-} from 'src/database/notification-model/notification-model.type';
-import { WS_USER } from 'src/ws/ws.events';
+import { PER_PAGE_NOTIFICATIONS, NotificationRequest } from 'src/database/notification-model/notification-model.type';
+import { DefaultHttpException } from 'src/exceptions/DefaultHttpException';
 import { Ws } from 'src/ws/ws.gateway';
 
-const ObjectId = Types.ObjectId;
+const { ObjectId } = Types;
 
 @Injectable()
 export class NotificationService {
   constructor(
     private readonly notificationModelService: NotificationModelService,
+    private readonly channelModelService: ChannelModelService,
+    private readonly friendModelService: FriendModelService,
     private readonly ws: Ws,
   ) {}
-
-  async find(
-    userId: string | Types.ObjectId,
-    lastId: string,
-  ): Promise<{ continue: boolean; results: NotificationDocument[] }> {
-    userId = new ObjectId(userId.toString());
-
+ 
+  async find(userId: string, lastId?: string, fields: {} = {}) {
     const userNotifications: NotificationDocument[] =
-      await this.notificationModelService.find(userId, lastId);
+      await this.notificationModelService.find(new ObjectId(userId), lastId, fields);
 
     return {
       continue: userNotifications.length === PER_PAGE_NOTIFICATIONS,
-      results: userNotifications,
+      notifications: userNotifications,
     };
   }
 
-  async findById(
-    notificationId: string | Types.ObjectId,
-  ): Promise<NotificationDocument> {
+  async findById(notificationId: string | Types.ObjectId) {
     notificationId = new ObjectId(notificationId.toString());
 
     const notificationDocument: NotificationDocument =
@@ -46,28 +40,51 @@ export class NotificationService {
     return notificationDocument;
   }
 
-  async create(toNotification: ToNotification): Promise<void> {
-    const notification: NotificationDocument =
-      await this.notificationModelService.create(toNotification);
+  async createChannelNotification({ destined, sender, invitationId, type }: NotificationRequest) {
+    const notificationExists = await this.notificationModelService.notificationExists({ sender, destined, invitationId, type })
 
-    this.ws.emitToOne(
-      toNotification.destined,
-      WS_USER.NEW_NOTIFICATION,
-      notification,
-    );
+    if(notificationExists) {
+      throw new DefaultHttpException({ status: HttpStatus.CONFLICT, message: 'There is a notification with that data' })
+    }
+
+    const isNotMemberAndCheckAdmin = await this.channelModelService.isNotMemberAndCheckAdmin(
+      { channelId: invitationId, adminId: sender, userId: destined }
+    )
+
+    if(!isNotMemberAndCheckAdmin) {
+      throw new DefaultHttpException({ status: HttpStatus.BAD_REQUEST, message: 'Already member' })
+    }
+
+    const notification: NotificationDocument =
+      await this.notificationModelService.create({ destined, sender, invitationId, type });
+
+    return notification
   }
 
-  async readed(
-    ids: (string | Types.ObjectId)[],
-    destined: string | Types.ObjectId,
-  ): Promise<void> {
+  async createFriendNotification({ destined, sender, invitationId, type }: NotificationRequest) {
+    const notificationExists = await this.notificationModelService.notificationExists({ sender, destined, invitationId, type })
+
+    if(notificationExists) {
+      throw new DefaultHttpException({ status: HttpStatus.CONFLICT, message: 'There is a notification with that data' })
+    }
+
+    const isFriend = await this.friendModelService.isFriend({ userId: destined, friend: sender })
+
+    if(isFriend) {
+      throw new DefaultHttpException({ status: HttpStatus.BAD_REQUEST, message: 'Already friends' })
+    }
+
+    const notification: NotificationDocument =
+      await this.notificationModelService.create({ destined, sender, invitationId, type });
+
+    return notification
+  }
+
+  async readed(ids: (string | Types.ObjectId)[], destined: string | Types.ObjectId,) {
     await this.notificationModelService.readed(ids, destined);
   }
 
-  async delete(notificationId: string, userId: Types.ObjectId): Promise<void> {
-    await this.notificationModelService.delete(
-      new Types.ObjectId(notificationId),
-      userId,
-    );
+  async delete(notificationId: Types.ObjectId, userId: Types.ObjectId) {
+    return await this.notificationModelService.delete(notificationId, userId)
   }
 }

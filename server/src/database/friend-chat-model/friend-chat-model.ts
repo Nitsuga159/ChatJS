@@ -18,9 +18,6 @@ export class FriendChat {
   @Prop({ type: Types.ObjectId, ref: Friend.name, required: true })
   friendId: Types.ObjectId;
 
-  @Prop({ type: String, required: true })
-  clientId: string;
-
   @Prop({
     type: {
       value: {

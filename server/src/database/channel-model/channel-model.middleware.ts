@@ -52,12 +52,16 @@ export class AdminMiddleware implements CanActivate {
       const { _id } = req.user;
       const { channelId } = req.params;
 
-      if (!channelId) throw 'Invalid channel';
+      if (!channelId) {
+        throw 'Invalid channel';
+      }
 
       const channelDocument: ChannelDocument | null =
         await this.channelModelService.findByAdmin(channelId, _id);
 
-      if (!channelDocument) throw 'Invalid channel with this user';
+      if (!channelDocument) {
+        throw 'Invalid channel with this user';
+      }
 
       req.channelDocument = channelDocument;
 

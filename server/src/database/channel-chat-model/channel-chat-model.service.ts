@@ -5,9 +5,7 @@ import { Model, Types } from 'mongoose';
 import {
   ChatMessageData,
   MessageType,
-  PER_PAGE_MESSAGES,
 } from '../types/message.type';
-import { ChannelDocument } from '../channel-model/channel.model';
 
 @Injectable()
 export class ChannelChatModelService {
@@ -21,11 +19,12 @@ export class ChannelChatModelService {
   async get(
     channelId: Types.ObjectId,
     chatId: Types.ObjectId,
-    lastId: string,
-  ): Promise<ChannelChatDocument[]> {
+    lastId?: string,
+    fields: {} = {}
+  ) {
     let query = this.channelChatModel
-      .find({ channelId, chatId }, { __v: 0, channelId: 0, chatId: 0 })
-      .sort({ createdAt: 'desc' })
+      .find({ channelId, chatId }, fields)
+      .sort({ _id: 'desc' })
       .populate('message.sender', 'username photo color');
 
     if (lastId) {
@@ -39,28 +38,33 @@ export class ChannelChatModelService {
     return messages.reverse();
   }
 
-  async getImageMessages(idsMessages: string[]): Promise<string[]> {
+  async getImageMessages(idsMessages: string[]) {
     return (
-      await this.channelChatModel.find({ _id: { $in: idsMessages } }).exec()
+      await this.channelChatModel.find(
+        { _id: { $in: idsMessages } }, 
+        { _id: 0, channelId: 0, chatId: 0 }
+      ).exec()
     )
       .map((m) => m.message.photos)
       .reduce((actual, next) => [...actual, ...next], []);
   }
 
   async add(
-    chatMessageData: ChatMessageData,
+    { channelId, chatId }: ChatMessageData,
     message: MessageType,
+    fields: {} = {}
   ): Promise<ChannelChatDocument> {
     let createdMessage = new this.channelChatModel({
-      ...chatMessageData,
+      channelId: new Types.ObjectId(channelId),
+      chatId: new Types.ObjectId(chatId),
       message,
-    });
+    }, fields);
+    
     createdMessage = await createdMessage.save();
+    
     createdMessage = (
       await createdMessage.populate('message.sender', 'username photo color')
-    ).toObject();
-
-    delete createdMessage.__v;
+      ).toObject({ useProjection: true });
 
     return createdMessage;
   }
@@ -99,26 +103,31 @@ export class ChannelChatModelService {
 
   async delete(
     ids: string[],
-    channelDocument: ChannelDocument,
+    channelId: Types.ObjectId,
     chatId: Types.ObjectId,
     userId: Types.ObjectId,
-  ): Promise<Types.ObjectId[]> {
-    const isAdmin = channelDocument.admin.equals(userId);
+    isAdmin: boolean
+  ) {
 
     const query = {
       _id: { $in: ids },
-      channelId: channelDocument._id,
+      channelId: channelId,
       chatId,
       $or: [{ 'message.sender': userId }],
     };
 
-    if (isAdmin) (query.$or as any).push({});
+    if(isAdmin) {
+      query.$or.push({} as any)
+    }
 
-    const messageDocuments: { _id: Types.ObjectId }[] =
-      await this.channelChatModel.find(query);
+    await this.channelChatModel.deleteMany(query)
+  }
 
-    await this.channelChatModel.deleteMany(query);
+  async deleteByChat(channelId: Types.ObjectId, chatId: Types.ObjectId) {
+    await this.channelChatModel.deleteMany({ channelId, chatId })
+  }
 
-    return messageDocuments.map(({ _id }) => _id);
+  async deleteByChannel(channelId: Types.ObjectId) {
+    await this.channelChatModel.deleteMany({ channelId })
   }
 }

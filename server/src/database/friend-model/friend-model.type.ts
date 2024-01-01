@@ -17,5 +17,5 @@ export interface FriendDatabaseResponse {
   };
 }
 
-export const PER_PAGE_FRIEND: number = 35;
+
 export const PER_EXTEND_PAGE_FRIEND: number = 300;

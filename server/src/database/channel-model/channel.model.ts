@@ -10,7 +10,7 @@ export class Channel {
   @Prop({
     type: String,
     required: true,
-    validators: { validate: (v: string) => v.length >= 5 && v.length <= 100 },
+    validators: { validate: (v: string) => v.length >= 5 && v.length <= 30 },
   })
   name: string;
 

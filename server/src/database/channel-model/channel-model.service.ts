@@ -1,8 +1,9 @@
-import { Injectable } from '@nestjs/common';
+import { HttpStatus, Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Channel, ChannelDocument } from './channel.model';
 import { Model, Types } from 'mongoose';
-import { ChannelChatType } from './channel-model.type';
+import { AddChatRequest, ChannelChatType } from './channel-model.type';
+import { DefaultHttpException } from 'src/exceptions/DefaultHttpException';
 
 @Injectable()
 export class ChannelModelService {
@@ -13,47 +14,121 @@ export class ChannelModelService {
     private readonly channelModel: Model<ChannelDocument>,
   ) {}
 
-  async findByUser(admin: Types.ObjectId | string): Promise<ChannelDocument[]> {
-    return await this.channelModel.find({ admin });
+  /**
+   * Search a document which has that channelId and is admin with adminId
+   * @param data - { adminId, channelId }
+   * @returns null or coincidence
+   */
+  async isAdmin({ adminId, channelId }: { adminId: Types.ObjectId, channelId: Types.ObjectId }) {
+    return await this.channelModel.exists({ _id: channelId, admin: adminId })
   }
 
-  async findAll(
-    userId: string | Types.ObjectId,
-    lastId: string,
-  ): Promise<{ continue: boolean; results: ChannelDocument[] }> {
+  /**
+   * Search a document which is member with that channelId
+   * @param data - { userId, channelId }
+   * @returns null or coincidence
+   */
+  async isMember({ userId, channelId }: { userId: Types.ObjectId, channelId: Types.ObjectId }) {
+    return await this.channelModel.exists({ _id: channelId, participants: { $in: userId } })
+  }
+
+  /**
+   * Search a document which is member with that channelId and a chat with that chatId
+   * @param data - { userId, channelId, chatId }
+   * @returns null or coincidence
+   */
+  async isMemberAndHasChat({ userId, channelId, chatId }: { userId: Types.ObjectId, channelId: Types.ObjectId, chatId: Types.ObjectId }) {
+    return await this.channelModel.exists({ 
+      _id: channelId, 
+      participants: { $in: userId }, 
+      chats: { $elemMatch: { _id: chatId } } 
+    })
+  }
+
+  /**
+   * Search a document which userId is not member and check if adminId & channelId match
+   * @param data - { userId, channelId, adminId }
+   * @returns null or coincidence
+   */
+  async isNotMemberAndCheckAdmin({ userId, channelId, adminId }: { userId: Types.ObjectId, channelId: Types.ObjectId, adminId: Types.ObjectId }) {
+    return await this.channelModel.exists({ 
+      _id: channelId, 
+      admin: adminId,
+      participants: { $in: userId }
+    })
+  }
+
+  async exists(options: any) {
+    return await this.channelModel.exists(options)
+  }
+
+  mapChannel(userId: Types.ObjectId, channelDocument: ChannelDocument) {
+    const obj = channelDocument.toObject()
+
+    if(obj.chats) {
+      obj.chats = obj.chats.map(data => ({ ...data, messagesCount: data.messagesCount.get(userId.toString()) }))
+    }
+
+    return obj
+  }
+
+  async countUserChannel(admin: Types.ObjectId | string): Promise<number> {
+    return await this.channelModel.find({ admin }).countDocuments();
+  }
+
+  async findAll(userId: Types.ObjectId, lastId: string, fields: {} = {}) {
     let query = this.channelModel
-      .find({ participants: { $in: userId } })
-      .select('name photo');
+      .find({ participants: { $in: userId } }, fields)
 
     if (lastId) {
       query = query.where('_id').gt(new Types.ObjectId(lastId) as any);
     }
 
-    const results = await query
+    const channels = (await query
       .limit(ChannelModelService.PER_PAGE_CHANNELS)
-      .exec();
+      .exec()).map((channel) => this.mapChannel(userId, channel));
 
     return {
-      continue: results.length === ChannelModelService.PER_PAGE_CHANNELS,
-      results,
+      continue: channels.length === ChannelModelService.PER_PAGE_CHANNELS,
+      channels,
     };
   }
 
   async findById(
     channelId: string | Types.ObjectId,
+    fields: {} = {}
   ): Promise<ChannelDocument | null> {
-    return await this.channelModel.findById(channelId, { __v: 0 }).exec();
+    return await this.channelModel.findById(channelId, fields).exec();
   }
 
   async findByAdmin(
-    _id: string | Types.ObjectId,
+    _id: string,
     admin: string | Types.ObjectId,
   ): Promise<ChannelDocument | null> {
-    return await this.channelModel.findOne({ _id, admin });
+    const channel = await this.channelModel.findOne({ _id: new Types.ObjectId(_id), admin: new Types.ObjectId(admin) });
+
+    if(!channel) {
+      throw new DefaultHttpException({ status: HttpStatus.BAD_REQUEST, message: 'Channel not found' })
+    }
+
+    return channel
   }
 
-  async findByOtherData(data: any): Promise<ChannelDocument | null> {
-    return await this.channelModel.findOne(data, { __v: 0 }).exec();
+  async findAllByAdmin(
+    adminId: Types.ObjectId,
+    fields: {} = {}
+  ) {
+    return (await this.channelModel.find({ admin: adminId }, fields).exec()).map((channel) => this.mapChannel(adminId, channel));
+  }
+
+  async findByOtherData(data: any, fields: {} = {}): Promise<ChannelDocument | null> {
+    const channel = await this.channelModel.findOne(data, fields).exec();
+
+    if(!channel) {
+      throw new DefaultHttpException({ status: HttpStatus.NOT_FOUND, message: 'Channel not found' })
+    }
+
+    return channel
   }
 
   async create(data: {
@@ -76,33 +151,53 @@ export class ChannelModelService {
   async addParticipant(
     channelId: Types.ObjectId,
     userId: Types.ObjectId,
+    fields: {} = {}
   ): Promise<ChannelDocument> {
     return await this.channelModel.findByIdAndUpdate(channelId, {
       $addToSet: { participants: userId },
-    });
+    }).select(fields);
   }
 
   async deleteParticipant(
     channelId: Types.ObjectId,
-    userId: Types.ObjectId,
+    adminId: Types.ObjectId,
+    participantId: Types.ObjectId
   ): Promise<void> {
-    await this.channelModel.findByIdAndUpdate(channelId, {
-      $pull: { participants: userId },
+    await this.channelModel.findOneAndUpdate({ _id: channelId, admin: adminId }, {
+      $pull: { participants: participantId },
     });
   }
 
   async update(
     channelId: Types.ObjectId,
+    adminId: Types.ObjectId,
     data: any,
-  ): Promise<ChannelDocument | null> {
-    return await this.channelModel.findByIdAndUpdate(channelId, data);
+  ) {
+    return await this.channelModel.findOneAndUpdate({ _id: channelId, admin: adminId }, data);
   }
 
-  async addChat(
-    channelDocument: ChannelDocument,
-    chatName: string,
-  ): Promise<ChannelChatType> {
-    if (channelDocument.chats.length === 5) throw 'Limit chat exceded';
+  async updateChat(channelId: Types.ObjectId, adminId: Types.ObjectId, chatId: Types.ObjectId, data: any) {
+    const channelDocument = await this.findByOtherData({ _id: channelId, admin: adminId })
+
+    const index = channelDocument.chats.findIndex(({ _id }) => _id.equals(chatId))
+
+    if(index === -1) {
+      throw new DefaultHttpException({ status: HttpStatus.NOT_FOUND, message: 'Chat not found' })
+    }
+
+    for(let key in data) {
+      channelDocument.chats[index][key] = data[key]
+    }
+
+    await channelDocument.save()
+  }
+
+  async addChat({ channelId, chatName, adminId }: AddChatRequest) {
+    const channelDocument = await this.findByAdmin(channelId, adminId)
+
+    if (channelDocument.chats.length === 5) {
+      throw new DefaultHttpException({ status: HttpStatus.FORBIDDEN, message: 'Limit chat exceded' })
+    }
 
     const chatId = new Types.ObjectId();
     const messagesCount = new Map<Types.ObjectId, number>();
@@ -115,18 +210,21 @@ export class ChannelModelService {
 
     await channelDocument.save();
 
-    return chat;
+    return { channelDocument, chat };
   }
 
   async deleteChat(
-    channelDocument: ChannelDocument,
+    channelId: Types.ObjectId,
+    adminId: Types.ObjectId,
     chatId: Types.ObjectId,
   ): Promise<Types.ObjectId> {
-    channelDocument.chats = channelDocument.chats.filter(
+    const channel = await this.findByOtherData({ _id: channelId, admin: adminId })
+
+    channel.chats = channel.chats.filter(
       (chat) => !chat._id.equals(chatId),
     );
 
-    await channelDocument.save();
+    await channel.save();
 
     return chatId;
   }
@@ -140,5 +238,15 @@ export class ChannelModelService {
       channelChat.messagesCount.set(userId, 0);
       await channelDocument.save();
     }
+  }
+
+  async delete(channelId: Types.ObjectId, adminId: Types.ObjectId) {
+    const deletedChannel = await this.channelModel.findOneAndDelete({ _id: channelId, admin: adminId })
+
+    if(!deletedChannel) {
+      throw new DefaultHttpException({ status: HttpStatus.NOT_FOUND, message: 'Channel not found' })
+    }
+
+    return deletedChannel
   }
 }

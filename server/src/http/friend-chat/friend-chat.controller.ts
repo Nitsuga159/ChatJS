@@ -2,94 +2,65 @@ import {
   Controller,
   Delete,
   Get,
-  HttpException,
+  HttpCode,
   HttpStatus,
   Post,
   Req,
   UseGuards,
 } from '@nestjs/common';
-import { UserMiddleware } from '../../database/user-model/user-model.middleware';
 import { FriendChatService } from './friend-chat.service';
-import validateProps from 'src/middlewares/validate-props/validateProps.middleware';
-import { FriendMiddleware } from 'src/database/friend-model/friend-model.middleware';
-import { PROPS_DELETE_MESSAGES } from 'src/database/types/message.type';
 import { FriendChatDocument } from 'src/database/friend-chat-model/friend-chat-model';
 import { FriendDocument } from 'src/database/friend-model/friend-model';
+import { UserAccessTokenMiddleware } from '../user/user.middleware';
+import dataValidationMiddleware from 'src/middlewares/bodyValidation/dataValidation.middleware';
+import FRIEND_CHAT_MAP from './friend-chat.body';
+import makeResponse from 'src/utils/makeResponse';
 
 @Controller('friend-chat')
-@UseGuards(UserMiddleware, FriendMiddleware)
+@UseGuards(UserAccessTokenMiddleware)
 export class FriendChatController {
-  constructor(private readonly friendChatService: FriendChatService) {}
+  constructor(private readonly friendChatService: FriendChatService) { }
 
-  @Get('message/:friendId')
-  async get(
-    @Req() req: any,
-  ): Promise<{ continue: boolean; results: FriendChatDocument[] }> {
-    try {
-      return await this.friendChatService.get(
-        req.friendDocument._id,
-        req.query.lastId,
-      );
-    } catch (e: any) {
-      throw new HttpException(
-        `Error finding friend messages: ${e}`,
-        HttpStatus.BAD_REQUEST,
-      );
-    }
+  @Get(':friendId')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(dataValidationMiddleware(FRIEND_CHAT_MAP.GET_MESSAGES))
+  async get(@Req() { accessTokenPayload, query, params, _fields }: any) {
+    return makeResponse(
+      await this.friendChatService.get(
+        params.friendId,
+        accessTokenPayload._id,
+        query.lastId,
+        _fields
+      ),
+      HttpStatus.OK
+    )
   }
 
-  @Post('message/:friendId')
-  @UseGuards(
-    validateProps(
-      FriendChatController.PROPS_NEW_MESSAGE,
-      'body',
-      false,
-      'message',
-    ),
-  )
-  async add(@Req() req: any): Promise<void> {
-    try {
-      const friendDocument = req.friendDocument as FriendDocument;
-
-      if (!friendDocument.haveChat) {
-        friendDocument.haveChat = true;
-        await friendDocument.save();
-      }
-
+  @Post(':friendId')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(dataValidationMiddleware(FRIEND_CHAT_MAP.ADD_MESSAGE))
+  async add(@Req() { body, params, accessTokenPayload, _fields }: any) {
+    return makeResponse(
       await this.friendChatService.add(
-        friendDocument._id,
-        req.user._id,
-        req.query.clientId,
-        {
-          ...req.message,
-          sender: req.user._id,
-        },
-      );
-    } catch (e: any) {
-      console.log(e);
-      throw new HttpException(
-        `Error adding friend message: ${e}`,
-        HttpStatus.BAD_REQUEST,
-      );
-    }
+        params.friendId,
+        { ...body.message, sender: accessTokenPayload._id },
+        _fields
+      ),
+      HttpStatus.OK
+    )
   }
 
-  @Delete('message/:friendId')
-  @UseGuards(validateProps(PROPS_DELETE_MESSAGES, 'query', true, 'delete'))
-  async delete(@Req() req: any) {
-    try {
-      return await this.friendChatService.delete(
-        req.delete.ids.split(','),
-        req.friendDocument,
-        req.user._id,
-      );
-    } catch (e: any) {
-      throw new HttpException(
-        `Error erasing friend message: ${e}`,
-        HttpStatus.BAD_REQUEST,
-      );
-    }
+  @Delete(':friendId')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(dataValidationMiddleware(FRIEND_CHAT_MAP.DELETE_MESSAGE))
+  async delete(@Req() { query, params, accessTokenPayload }: any) {
+    return makeResponse(
+      await this.friendChatService.delete(
+        query.ids.split(','),
+        params.friendId,
+        accessTokenPayload._id,
+      ),
+      HttpStatus.OK
+    )
   }
-
-  private static readonly PROPS_NEW_MESSAGE = ['value', 'photos'];
 }

@@ -1,63 +1,37 @@
-import {
-  Controller,
-  Get,
-  HttpException,
-  HttpStatus,
-  Param,
-  Post,
-  Query,
-  Req,
-  UseGuards,
-} from '@nestjs/common';
-import { UserMiddleware } from '../../database/user-model/user-model.middleware';
+import { Controller, Get, HttpCode, HttpStatus, Param, Post, Req, UseGuards } from '@nestjs/common';
 import { FriendService } from './friend.service';
 import { NotificationMiddleware } from 'src/database/notification-model/notification-model.middleware';
-import { FriendDatabaseResponse } from 'src/database/friend-model/friend-model.type';
+import { UserAccessTokenMiddleware } from '../user/user.middleware';
+import dataValidationMiddleware from 'src/middlewares/bodyValidation/dataValidation.middleware';
+import makeResponse from 'src/utils/makeResponse';
+import FRIEND_MAP from './friend.body';
 
 @Controller('friend')
-@UseGuards(UserMiddleware)
+@UseGuards(UserAccessTokenMiddleware)
 export class FriendController {
   constructor(private readonly friendService: FriendService) {}
 
   @Get()
-  async get(
-    @Req() req: any,
-  ): Promise<{ continue: boolean; results: FriendDatabaseResponse[] }> {
-    try {
-      return await this.friendService.find(req.user._id, req.query.lastId);
-    } catch (e) {
-      throw new HttpException(
-        `Error finding friends: ${e}`,
-        HttpStatus.BAD_REQUEST,
-      );
-    }
+  @UseGuards(dataValidationMiddleware(FRIEND_MAP.GET_NOTIFICATION))
+  async get(@Req() req: any) {
+      return makeResponse(
+        await this.friendService.find(req.accessTokenPayload._id, req.query.lastId, req._fields),
+        HttpStatus.OK
+      )
   }
 
   @Post()
-  @UseGuards(NotificationMiddleware)
-  async add(@Req() req: any): Promise<void> {
-    try {
-      await this.friendService.add(req.user._id, req.notification.invitationId);
-    } catch (e) {
-      throw new HttpException(
-        `Error to add friend: ${e}`,
-        HttpStatus.BAD_REQUEST,
-      );
-    }
+  @HttpCode(HttpStatus.CREATED)
+  @UseGuards(dataValidationMiddleware(FRIEND_MAP.NOTIFICATION), NotificationMiddleware)
+  async add(@Req() req: any) {
+    return makeResponse(
+      await this.friendService.add(req.accessTokenPayload._id, req.body.invitationId, req._fields),
+      HttpStatus.CREATED
+    )
   }
 
   @Post('read/:friendId')
-  async readMessages(
-    @Req() req: any,
-    @Param('friendId') friendId: string,
-  ): Promise<void> {
-    try {
+  async readMessages(@Req() req: any, @Param('friendId') friendId: string) {
       await this.friendService.readMessages(friendId, req.user._id);
-    } catch (e) {
-      throw new HttpException(
-        `Error to read friend messages: ${e}`,
-        HttpStatus.BAD_REQUEST,
-      );
-    }
   }
 }

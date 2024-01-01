@@ -7,6 +7,8 @@ type MessageType = {
   value: string;
   sender: string;
   photos: string[];
+  createdAt: string;
+  updatedAt: string
 };
 
 export type ChannelChatDocument = ChannelChat & Document;
@@ -18,9 +20,6 @@ export class ChannelChat {
 
   @Prop({ type: Types.ObjectId, ref: Channel.name, required: true })
   channelId: Types.ObjectId;
-
-  @Prop({ type: String, required: true })
-  clientId: string;
 
   @Prop({
     type: {

@@ -7,26 +7,24 @@ import {
 } from '@nestjs/common';
 import { verify } from 'jsonwebtoken';
 import ENVS from 'src/envs';
+import { DefaultHttpException } from 'src/exceptions/DefaultHttpException';
+import ServerLogger from 'src/utils/logger';
 
 @Injectable()
 export class CodeVerificationMiddleware implements CanActivate {
   async canActivate(context: ExecutionContext): Promise<boolean> {
     try {
-      const req: any = context.switchToHttp().getRequest();
-      const { tokenMail } = req.query;
+      const req: any = context.switchToHttp().getRequest()
+      const { tokenMail } = req.query
 
-      if (!tokenMail) throw 'Invalid token mail';
-
-      const { mail }: any = verify(tokenMail, ENVS.JWT_MAIL_SECRET);
-
-      if (mail !== req.user.mail) throw 'Invalid token mail with the user body';
+      verify(tokenMail, ENVS.JWT_MAIL_SECRET)
 
       return true;
     } catch (e: any) {
-      throw new HttpException(
-        `Error in mail code middleware: ${e}`,
-        HttpStatus.UNAUTHORIZED,
-      );
+      this.logger.error('Error trying to verify access_token mail', e)
+      throw new DefaultHttpException({ status: HttpStatus.BAD_REQUEST, message: 'Cannot create user' })
     }
   }
+
+  private logger = new ServerLogger(CodeVerificationMiddleware.name)
 }

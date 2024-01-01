@@ -3,17 +3,14 @@ import { Types } from 'mongoose';
 export interface ChatMessageData {
   channelId: Types.ObjectId;
   chatId: Types.ObjectId;
-  clientId: string;
 }
 
 export interface MessageType {
-  sender: Types.ObjectId;
   value: string;
   photos?: string[];
+  sender: Types.ObjectId
 }
 
 export type SeenMessageType = { messageIds: string[]; userId: string };
 
 export const PER_PAGE_MESSAGES: number = 10;
-export const PROPS_READ_MESSAGES: string[] = ['ids'];
-export const PROPS_DELETE_MESSAGES: string[] = ['ids'];

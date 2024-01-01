@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { HttpStatus, Injectable } from '@nestjs/common';
 import { Types } from 'mongoose';
 import { ChannelChatDocument } from 'src/database/channel-chat-model/channel-chat-model';
 import { ChannelChatModelService } from 'src/database/channel-chat-model/channel-chat-model.service';
@@ -7,102 +7,104 @@ import { ChannelDocument } from 'src/database/channel-model/channel.model';
 import {
   ChatMessageData,
   MessageType,
-  PER_PAGE_MESSAGES,
 } from 'src/database/types/message.type';
-import { WS_CHANNEL } from 'src/ws/ws.events';
-import { Ws } from 'src/ws/ws.gateway';
 import { CloudinaryService } from '../cloudinary/cloudinary.service';
-
-const ObjectId = Types.ObjectId;
+import { DefaultHttpException } from 'src/exceptions/DefaultHttpException';
 
 @Injectable()
 export class ChannelChatService {
   constructor(
     private readonly channelChatModelService: ChannelChatModelService,
     private readonly channelModelService: ChannelModelService,
-    private readonly ws: Ws,
     private readonly cloudinaryService: CloudinaryService,
   ) {}
-
+ 
   async get(
+    userId: Types.ObjectId,
     channelId: Types.ObjectId,
     chatId: Types.ObjectId,
-    lastId: string,
-  ): Promise<{ continue: boolean; results: ChannelChatDocument[] }> {
+    lastId?: string,
+    fields: {} = {}
+  ) {
+    const isMember = await this.channelModelService.isMember({ userId, channelId })
+
+    if(!isMember) {
+      throw new DefaultHttpException({ status: HttpStatus.FORBIDDEN, message: 'Data doesn\'t match' })
+    }
+
     const messagesChannelChat = await this.channelChatModelService.get(
       channelId,
       chatId,
       lastId,
+      fields
     );
 
     return {
-      continue:
-        messagesChannelChat.length ===
-        ChannelChatModelService.PER_PAGE_CHANNEL_CHAT,
-      results: messagesChannelChat,
+      continue: messagesChannelChat.length === ChannelChatModelService.PER_PAGE_CHANNEL_CHAT,
+      messages: messagesChannelChat,
     };
   }
 
-  async add(
-    chatMessageData: ChatMessageData,
-    message: MessageType,
-  ): Promise<void> {
+  async add(chatMessageData: ChatMessageData, message: MessageType, fields: {} = {}) {
     const { channelId, chatId } = chatMessageData;
+
+    const isMemberAndHasChat = await this.channelModelService.isMemberAndHasChat({ userId: message.sender, channelId, chatId })
+
+    if(!isMemberAndHasChat) {
+      throw new DefaultHttpException({ status: HttpStatus.FORBIDDEN, message: 'Data doesn\'t match' })
+    }
+ 
     const createdMessage: ChannelChatDocument =
-      await this.channelChatModelService.add(chatMessageData, message);
+      await this.channelChatModelService.add(chatMessageData, message, fields);
+
     const channelDocument = await this.channelModelService.findById(channelId);
 
     const { participants } = channelDocument;
+    
     const chatIndex = channelDocument.chats.findIndex(
-      (chat) => chat._id.toString() === chatId.toString(),
+      (chat) => chat._id.equals(chatId),
     );
-
-    if (chatIndex < 0) throw 'Invalid chat';
 
     const { messagesCount } = channelDocument.chats[chatIndex];
 
+    //increment messages in pending
     participants.forEach((id) => {
-      if (!id.equals(message.sender))
+      if (!id.equals(message.sender)) {
         messagesCount.set(id, messagesCount.get(id) + 1);
+      }
     });
 
-    await channelDocument.save();
+    await channelDocument.save()
 
-    this.ws.emitToGroup(
-      participants,
-      WS_CHANNEL.NEW_CHANNEL_MESSAGE,
-      createdMessage,
-    );
+    return createdMessage
   }
 
   async delete(
     ids: string[],
-    channelDocument: ChannelDocument,
-    chatId: string | Types.ObjectId,
-    userId: string | Types.ObjectId,
-  ): Promise<void> {
-    chatId = new ObjectId(chatId.toString());
-    userId = new ObjectId(userId.toString());
+    channelId: Types.ObjectId,
+    chatId: Types.ObjectId,
+    userId: Types.ObjectId,
+  ) {
+    if(ids.length > 15) {
+      throw new DefaultHttpException({ status: HttpStatus.BAD_REQUEST, message: 'Exceded limit' })
+    }
+
+    const isAdmin = !!(await this.channelModelService.isAdmin({ adminId: userId, channelId }))
 
     const allPhotos = await this.channelChatModelService.getImageMessages(ids);
 
-    const idsMessages = await this.channelChatModelService.delete(
+    await this.channelChatModelService.delete(
       ids,
-      channelDocument,
+      channelId,
       chatId,
       userId,
+      isAdmin
     );
 
-    const { participants } = channelDocument;
-
-    this.ws.emitToGroup(participants, WS_CHANNEL.DELETE_CHANNEL_MESSAGE, {
-      chatId,
-      ids: idsMessages.map((id) => id.toString()),
-    });
-
-    console.log(allPhotos);
     allPhotos.forEach((url) =>
       this.cloudinaryService.deleteImage(url.match(/CHATJS\/\w+/)[0]),
     );
+
+    return { ids }
   }
 }

@@ -1,7 +1,7 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { IsBoolean, IsInt, IsString } from 'class-validator';
-import { Document } from 'mongoose';
-import { Colors } from './user-model.type';
+import { IsString } from 'class-validator';
+import { Document, Types } from 'mongoose';
+import { UserType } from '../user-types-model/user-model';
 
 export type UserDocument = User & Document;
 
@@ -32,6 +32,9 @@ export class User {
 
   @Prop({ type: String, default: null })
   photo: string;
+
+  @Prop({ type: Types.ObjectId, ref:  UserType.name, required: true })
+  userType: Types.ObjectId;
 
   @Prop({
     type: String,

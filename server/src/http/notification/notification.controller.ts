@@ -1,107 +1,64 @@
-import {
-  Controller,
-  Delete,
-  Get,
-  HttpException,
-  HttpStatus,
-  Param,
-  Post,
-  Query,
-  Req,
-  UseGuards,
-} from '@nestjs/common';
+import { Controller, Delete, Get, HttpCode, HttpStatus, Post, Req, UseGuards, } from '@nestjs/common';
 import { NotificationService } from './notification.service';
-import validateProps from 'src/middlewares/validate-props/validateProps.middleware';
-import { UserMiddleware } from '../../database/user-model/user-model.middleware';
 import {
   NotificationType,
-  PROPS_NEW_NOTIFICATION,
-  PROPS_READ_NOTIFICATION,
 } from 'src/database/notification-model/notification-model.type';
-import { NotificationDocument } from 'src/database/notification-model/notification-model';
-import { Types } from 'mongoose';
+import bodyValidationMiddleware from 'src/middlewares/bodyValidation/dataValidation.middleware';
+import { UserAccessTokenMiddleware } from '../user/user.middleware';
+import makeResponse from 'src/utils/makeResponse';
+import NOTIFICATION_MAP from './notification.body';
 
 @Controller('notification')
-@UseGuards(UserMiddleware)
+@UseGuards(UserAccessTokenMiddleware)
 export class NotificationController {
-  constructor(private readonly notificationService: NotificationService) {}
+  constructor(private readonly notificationService: NotificationService) { }
 
   @Get()
-  async find(
-    @Req() req: any,
-  ): Promise<{ continue: boolean; results: NotificationDocument[] }> {
-    try {
-      return await this.notificationService.find(
-        req.user._id,
+  async find(@Req() req: any) {
+    return makeResponse(
+      await this.notificationService.find(
+        req.accessTokenPayload._id,
         req.query.lastId,
-      );
-    } catch (e) {
-      throw new HttpException(
-        `Error to get user notifications: ${e}`,
-        HttpStatus.BAD_REQUEST,
-      );
-    }
+        req._fields
+      ),
+      HttpStatus.OK
+    )
   }
 
   @Post('friend')
-  @UseGuards(
-    validateProps(PROPS_NEW_NOTIFICATION, 'query', true, 'notification'),
-  )
-  async friendNotification(@Req() req: any): Promise<void> {
-    try {
-      const destined = new Types.ObjectId(req.notification.destined);
+  @HttpCode(HttpStatus.CREATED)
+  @UseGuards(bodyValidationMiddleware(NOTIFICATION_MAP.FRIEND_NOTIFICATION))
+  async friendNotification(@Req() { body, accessTokenPayload }: any) {
+    await this.notificationService.createFriendNotification({
+      destined: body.destined,
+      sender: accessTokenPayload._id,
+      type: NotificationType.FRIEND,
+      invitationId: accessTokenPayload._id
+    });
 
-      await this.notificationService.create({
-        destined,
-        sender: req.user._id,
-        type: NotificationType.FRIEND,
-        invitationId: req.user._id,
-      });
-    } catch (e) {
-      throw new HttpException(
-        `Error to send friend notification: ${e}`,
-        HttpStatus.BAD_REQUEST,
-      );
-    }
+    return makeResponse({ success: true }, HttpStatus.CREATED)
   }
 
   @Post('channel')
-  @UseGuards(
-    validateProps(PROPS_NEW_NOTIFICATION, 'query', true, 'notification'),
-  )
-  async channelNotification(
-    @Req() req: any,
-    @Query() query: { channelId: string },
-  ): Promise<void> {
-    try {
-      const destined = new Types.ObjectId(req.notification.destined);
+  @HttpCode(HttpStatus.CREATED)
+  @UseGuards(bodyValidationMiddleware(NOTIFICATION_MAP.CHANNEL_NOTIFICATION))
+  async channelNotification(@Req() { body, accessTokenPayload }: any) {
+    await this.notificationService.createChannelNotification({
+      destined: body.destined,
+      sender: accessTokenPayload._id,
+      type: NotificationType.CHANNEL,
+      invitationId: body.channelId
+    });
 
-      await this.notificationService.create({
-        destined,
-        sender: req.user._id,
-        type: NotificationType.CHANNEL,
-        invitationId: new Types.ObjectId(query.channelId),
-      });
-    } catch (e) {
-      throw new HttpException(
-        `Error to send channel notification: ${e}`,
-        HttpStatus.BAD_REQUEST,
-      );
-    }
+    return makeResponse({ success: true }, HttpStatus.CREATED)
   }
 
   @Delete(':notificationId')
-  async delete(
-    @Req() req: any,
-    @Param('notificationId') notficationId: string,
-  ): Promise<void> {
-    try {
-      await this.notificationService.delete(notficationId, req.user._id);
-    } catch (e) {
-      throw new HttpException(
-        `Error to delete notification: ${e}`,
-        HttpStatus.BAD_REQUEST,
-      );
-    }
+  @HttpCode(HttpStatus.OK)
+  async delete(@Req() { notficationId, accessTokenPayload }: any) {
+    return makeResponse(
+      await this.notificationService.delete(notficationId, accessTokenPayload._id),
+      HttpStatus.OK
+    )
   }
 }

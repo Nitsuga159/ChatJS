@@ -11,13 +11,10 @@ export class FriendChatModelService {
     private readonly friendChatModel: Model<FriendChatDocument>,
   ) {}
 
-  async get(
-    friendId: Types.ObjectId,
-    lastId: string,
-  ): Promise<FriendChatDocument[]> {
+  async get(friendId: Types.ObjectId, lastId?: Types.ObjectId, fields: {} = {}) {
     let query = this.friendChatModel
-      .find({ friendId }, { __v: 0, friendId: 0 })
-      .sort({ createdAt: 'desc' })
+      .find({ friendId }, fields)
+      .sort({ _id: 'desc' })
       .populate('message.sender', 'username photo color');
 
     if (lastId) {
@@ -35,42 +32,28 @@ export class FriendChatModelService {
     ).reduce((array, { message }) => [...array, ...message.photos], []);
   }
 
-  async add(
-    friendId: Types.ObjectId,
-    clientId: string,
-    message: MessageType,
-  ): Promise<FriendChatDocument> {
+  async add(friendId: Types.ObjectId, message: MessageType, fields: {} = {}) {
     let createdMessage = new this.friendChatModel({
       friendId,
-      clientId,
       message,
-    });
+    }, fields);
+
     createdMessage = await (
       await createdMessage.save()
     ).populate('message.sender', 'username color photo');
-    createdMessage = createdMessage.toObject();
 
-    delete createdMessage.__v;
+    createdMessage = createdMessage.toObject({ useProjection: true });
 
     return createdMessage;
   }
 
-  async delete(
-    ids: Types.ObjectId[],
-    friendId: Types.ObjectId,
-    userId: Types.ObjectId,
-  ): Promise<Types.ObjectId[]> {
+  async delete(ids: string[], friendId: Types.ObjectId, userId: Types.ObjectId) {
     const query = {
       _id: { $in: ids },
       friendId,
       'message.sender': userId,
     };
 
-    const deletedDocuments: { _id: Types.ObjectId }[] =
-      await this.friendChatModel.find(query).select('_id').exec();
-
-    await this.friendChatModel.deleteMany(query);
-
-    return deletedDocuments.map(({ _id }) => _id);
+    await this.friendChatModel.deleteMany(query).exec();
   }
 }

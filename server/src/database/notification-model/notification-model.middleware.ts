@@ -5,38 +5,34 @@ import {
   HttpStatus,
   Injectable,
 } from '@nestjs/common';
-import { verify } from 'jsonwebtoken';
-import ENVS from 'src/envs';
 import { NotificationModelService } from './notification-model.service';
+import { DefaultHttpException } from 'src/exceptions/DefaultHttpException';
+import { Types } from 'mongoose';
+
+const { ObjectId } = Types
 
 @Injectable()
 export class NotificationMiddleware implements CanActivate {
   constructor(
     private readonly notificationModelService: NotificationModelService,
-  ) {}
+  ) { }
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     try {
       const req: any = context.switchToHttp().getRequest();
-      const tokenNotification = req.query.tokenNotification;
 
-      if (!tokenNotification) throw 'Invalid token';
+      const removedNotification = 
+        await this.notificationModelService.delete(new ObjectId(req.body.notificationId), new ObjectId(req.accessTokenPayload._id));
 
-      const notification: any = verify(
-        tokenNotification,
-        ENVS.JWT_NOTIFICATION_SECRET,
-      );
+      if(!removedNotification) {
+        throw 'Invalid notification'
+      }
 
-      await this.notificationModelService.delete(notification.id, req.user._id);
-
-      req.notification = notification;
+      req.body.invitationId = removedNotification.invitationId
 
       return true;
     } catch (e: any) {
-      throw new HttpException(
-        `Error with notification middleware: ${e}`,
-        HttpStatus.UNAUTHORIZED,
-      );
+      throw new DefaultHttpException({ status: HttpStatus.BAD_REQUEST, message: `Error with notification middleware: ${e}` });
     }
   }
 }

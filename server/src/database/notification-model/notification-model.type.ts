@@ -7,13 +7,13 @@ export enum NotificationType {
   CHANNEL = 'CHANNEL',
 }
 
-export type ToNotification = {
+export interface NotificationRequest {
   sender: ObjectId;
   destined: ObjectId;
   invitationId: ObjectId;
   type: NotificationType;
 };
 
-export const PER_PAGE_NOTIFICATIONS = 15;
+export const PER_PAGE_NOTIFICATIONS = 5;
 export const PROPS_READ_NOTIFICATION: string[] = ['ids'];
 export const PROPS_NEW_NOTIFICATION: string[] = ['destined'];

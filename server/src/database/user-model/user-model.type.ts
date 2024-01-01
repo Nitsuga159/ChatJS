@@ -6,6 +6,19 @@ export type LoginRequest = {
   password: string;
 };
 
+export interface UserRequest {
+  mail: string,
+  username: string,
+  password: string,
+  photo: string
+}
+
+export interface PayloadUserAccessToken {
+  _id: string,
+  scope: [],
+  exp: number
+}
+
 export interface UserType {
   _id: Types.ObjectId;
   mail: string;
@@ -14,11 +27,6 @@ export interface UserType {
   photo: string | null;
   habilited: boolean;
   color: string;
-}
-
-export interface LoginResponseType
-  extends Omit<UserType, 'password' | 'habilited'> {
-  accessToken: string;
 }
 
 export type ChangePasswordType = {
@@ -34,6 +42,16 @@ export type FindUserResponse = {
 export enum Colors {
   RED = '#F00',
   BLUE = '#00F',
+}
+
+export const USER_VALUE = {
+  _id: 1,
+  mail: 1,
+  username: 1,
+  description: 1,
+  photo: 1,
+  userType: 1,
+  color: 1
 }
 
 export const ROUNDS_ENCRYPT = 10;

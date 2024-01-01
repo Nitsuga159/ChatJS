@@ -1,98 +1,57 @@
-import {
-  Controller,
-  Delete,
-  Get,
-  HttpException,
-  HttpStatus,
-  Param,
-  Post,
-  Req,
-  UseGuards,
-} from '@nestjs/common';
-import { UserMiddleware } from '../../database/user-model/user-model.middleware';
+import { Controller, Delete, Get, HttpCode, HttpStatus, Post, Req, UseGuards } from '@nestjs/common';
 import { ChannelChatService } from './channel-chat.service';
-import validateProps from 'src/middlewares/validate-props/validateProps.middleware';
-import { PROPS_DELETE_MESSAGES } from 'src/database/types/message.type';
-import {
-  FindChatMiddleware,
-  FindChannelMiddleware,
-} from 'src/database/channel-model/channel-model.middleware';
+import { UserAccessTokenMiddleware } from '../user/user.middleware';
+import { Types } from 'mongoose';
+import makeResponse from 'src/utils/makeResponse';
+import CHANNEL_CHAT_BODY from './channel-chat.body';
+import dataValidationMiddleware from 'src/middlewares/bodyValidation/dataValidation.middleware';
 
 @Controller('channel-chat')
-@UseGuards(UserMiddleware, FindChannelMiddleware, FindChatMiddleware)
+@UseGuards(UserAccessTokenMiddleware)
 export class ChannelChatController {
-  constructor(private readonly channelChatService: ChannelChatService) {}
+  constructor(private readonly channelChatService: ChannelChatService) { }
 
   @Get('message/:channelId')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(dataValidationMiddleware(CHANNEL_CHAT_BODY.GET_CHANNEL_CHAT_MESSAGES))
   async get(@Req() req: any) {
-    try {
-      return await this.channelChatService.get(
-        req.channelDocument._id,
-        req.chatId,
+    return makeResponse(
+      await this.channelChatService.get(
+        new Types.ObjectId(req.accessTokenPayload._id),
+        new Types.ObjectId(req.params.channelId),
+        new Types.ObjectId(req.query.chatId),
         req.query.lastId,
-      );
-    } catch (e: any) {
-      throw new HttpException(
-        `Error finding chat channel messages: ${e}`,
-        HttpStatus.BAD_REQUEST,
-      );
-    }
+        req._fields
+      ),
+      HttpStatus.OK
+    )
   }
 
-  @Post('message/:channelId')
-  @UseGuards(
-    validateProps(
-      ChannelChatController.PROPS_NEW_MESSAGE,
-      'body',
-      false,
-      'message',
-    ),
-    validateProps(
-      ChannelChatController.PROPS_MESSAGE_DATA,
-      'query',
-      true,
-      'messageData',
-    ),
-  )
+  @Post('message')
+  @HttpCode(HttpStatus.CREATED)
+  @UseGuards(dataValidationMiddleware(CHANNEL_CHAT_BODY.ADD_CHANNEL_CHAT_MESSAGE))
   async add(@Req() req: any) {
-    try {
-      return await this.channelChatService.add(
-        {
-          clientId: req.query.clientId,
-          chatId: req.chatId,
-          channelId: req.channelDocument._id,
-        },
-        {
-          ...req.message,
-          sender: req.user._id,
-        },
-      );
-    } catch (e: any) {
-      throw new HttpException(
-        `Error adding chat channel message: ${e}`,
-        HttpStatus.BAD_REQUEST,
-      );
-    }
-  }
+    const message = await this.channelChatService.add(
+      req.body.channelChatData,
+      { ...req.body.message, sender: req.accessTokenPayload._id },
+      req._fields
+    )
 
+    return makeResponse(message, HttpStatus.CREATED)
+  }
+  
   @Delete('message/:channelId')
-  @UseGuards(validateProps(PROPS_DELETE_MESSAGES, 'query', true, 'delete'))
-  async delete(@Req() req: any) {
-    try {
-      return await this.channelChatService.delete(
-        req.delete.ids.split(','),
-        req.channelDocument,
-        req.chatId,
-        req.user._id,
-      );
-    } catch (e: any) {
-      throw new HttpException(
-        `Error erasing chat channel message: ${e}`,
-        HttpStatus.BAD_REQUEST,
-      );
-    }
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(dataValidationMiddleware(CHANNEL_CHAT_BODY.DELETE_CHANNEL_CHAT_MESSAGES))
+  async delete(@Req() { query, params, accessTokenPayload }: any) {
+    return makeResponse(
+      await this.channelChatService.delete(
+        query.ids.split(','),
+        params.channelId,
+        query.chatId,
+        accessTokenPayload._id
+      ),
+      HttpStatus.OK
+    )
   }
-
-  private static readonly PROPS_NEW_MESSAGE = ['value', 'photos'];
-  private static readonly PROPS_MESSAGE_DATA = ['chatId', 'clientId'];
 }
