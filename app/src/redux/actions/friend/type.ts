@@ -13,7 +13,7 @@ export interface RequestGetFriends
 }
 
 export interface ResponseGetFriends {
-  results: Friend[];
+  friends: Friend[];
   continue: boolean;
 }
 

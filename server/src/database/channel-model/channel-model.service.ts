@@ -4,10 +4,12 @@ import { Channel, ChannelDocument } from './channel.model';
 import { Model, Types } from 'mongoose';
 import { AddChatRequest, ChannelChatType } from './channel-model.type';
 import { DefaultHttpException } from 'src/exceptions/DefaultHttpException';
+import queryFilter, { QueryFilterProps } from 'src/utils/queryFilter';
+import { ChannelQuery } from 'src/http/channel/channel.body';
 
 @Injectable()
 export class ChannelModelService {
-  private static readonly PER_PAGE_CHANNELS: number = 5;
+  private static readonly PER_PAGE_CHANNELS: number = 10;
 
   constructor(
     @InjectModel(Channel.name)
@@ -72,21 +74,15 @@ export class ChannelModelService {
     return obj
   }
 
-  async countUserChannel(admin: Types.ObjectId | string): Promise<number> {
+  async countUserChannel(admin: Types.ObjectId): Promise<number> {
     return await this.channelModel.find({ admin }).countDocuments();
   }
 
-  async findAll(userId: Types.ObjectId, lastId: string, fields: {} = {}) {
+  async findAll(userId: Types.ObjectId, queryProps: ChannelQuery) {
     let query = this.channelModel
-      .find({ participants: { $in: userId } }, fields)
+      .find({ participants: { $in: userId } }, queryProps.fields || {})
 
-    if (lastId) {
-      query = query.where('_id').gt(new Types.ObjectId(lastId) as any);
-    }
-
-    const channels = (await query
-      .limit(ChannelModelService.PER_PAGE_CHANNELS)
-      .exec()).map((channel) => this.mapChannel(userId, channel));
+    const channels = (await queryFilter({ query, limit: ChannelModelService.PER_PAGE_CHANNELS, ...queryProps })).map(channel => this.mapChannel(userId, channel));
 
     return {
       continue: channels.length === ChannelModelService.PER_PAGE_CHANNELS,
@@ -102,10 +98,10 @@ export class ChannelModelService {
   }
 
   async findByAdmin(
-    _id: string,
-    admin: string | Types.ObjectId,
+    _id: Types.ObjectId,
+    admin: Types.ObjectId,
   ): Promise<ChannelDocument | null> {
-    const channel = await this.channelModel.findOne({ _id: new Types.ObjectId(_id), admin: new Types.ObjectId(admin) });
+    const channel = await this.channelModel.findOne({ _id, admin });
 
     if(!channel) {
       throw new DefaultHttpException({ status: HttpStatus.BAD_REQUEST, message: 'Channel not found' })

@@ -8,7 +8,6 @@ export const haveMessageStatus = (status: MessageStatus | undefined): boolean =>
 
 export interface Message {
   _id?: string;
-  clientId: string;
   createdAt: string;
   updatedAt: string;
   status?: MessageStatus;

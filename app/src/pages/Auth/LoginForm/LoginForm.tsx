@@ -1,18 +1,15 @@
-import { SetStateAction, useEffect, useState } from 'react';
+import { SetStateAction, useState } from 'react';
 import { Mode } from '@/types/auth.type';
-import { useDispatch, useSelector } from 'react-redux';
+import { useDispatch } from 'react-redux';
 import { AppDispatch } from '@/redux/store';
 import validations from '../../../validations/user.validation'
 import s from './LoginForm.module.css';
 import Field from '@/components/Field';
 import { COLORS } from '@/styles';
-import { getUserState } from '@/redux/slices/user';
 import { addLoader, removeLoader } from '@/helpers/loaderFullScreen/loaderFullScreen';
 import { userActions, userFetchs } from '@/redux/actions/user';
 import { failureNotification } from '@/helpers/notify';
-import { DefaultResponse } from '@/types/const.type';
 import { setUserToken } from '@/ipc-electron';
-import { User } from '@/types/user.type';
 
 type LoginFormProps = {
   setMode: (mode: SetStateAction<Mode>) => void,
@@ -43,16 +40,25 @@ export default function LoginForm({ setMode }: LoginFormProps) {
       Object.values(inputErrors)
         .some((error: string) => error !== "");
 
-    if (isError) return;
+    if (isError) {
+      return;
+    }
 
     addLoader(COLORS.FOLLY);
 
-    const { ok, error, data } = await userFetchs.login(inputs) as any as DefaultResponse;
+    try {
+      const { results: data  } = await userFetchs.login(inputs);
 
-    if (ok) {
-      dispatch(userActions.login(data));
-      setUserToken((data as User).accessToken)
-    } else failureNotification(error!);
+      console.log(data)
+
+      const { results: userData  } = await userFetchs.info(data.accessToken);
+
+      dispatch(userActions.login({ ...userData, accessToken: data.accessToken }));
+      setUserToken(data.accessToken)
+    } catch (e: any) {
+      console.log(e)
+      failureNotification(e.response.data.message);
+    }
 
     removeLoader();
   }
@@ -66,6 +72,7 @@ export default function LoginForm({ setMode }: LoginFormProps) {
         value={inputs.mail}
         error={inputErrors.mail}
         onChange={handleFormChange}
+        maxLength={255}
       />
       <Field
         name='password'
@@ -73,6 +80,7 @@ export default function LoginForm({ setMode }: LoginFormProps) {
         value={inputs.password}
         error={inputErrors.password}
         onChange={handleFormChange}
+        maxLength={30}
       />
       <div className={s.showPasswordContainer}>
         <input

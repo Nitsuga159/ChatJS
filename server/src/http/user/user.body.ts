@@ -1,67 +1,94 @@
-import { bodyValidationProps } from "src/middlewares/bodyValidation/dataValidation.middleware";
-import { EQUAL_LENGTH_OBJ, GREATER_LENGTH, IS_STRING, JUST_THIS_PROPERTIES, LESS_LENGTH, NOT_FALSY, REGEXP } from "src/utils/validators";
+import { Transform } from "class-transformer";
+import { IsOptional, IsString, Matches, MaxLength, MinLength, } from "class-validator";
+import { fieldsTransform, transformObjectId } from "src/utils/fieldsTransform";
+import { Types } from "mongoose";
 
-const PASSWORD_VALIDATION = REGEXP(/(?=.*[a-z]){2,}(?=.*[A-Z]){1,}(?=.*\d){1,}(?=.*[^a-zA-Z\d]){1,}/)
+const PASSWORD_VALIDATION = /(?=.*[a-z]){2,}(?=.*[A-Z]){1,}(?=.*\d){1,}(?=.*[^a-zA-Z\d]){1,}/
 
-export const BODY_MAP_USER: bodyValidationProps = [
-    [
-        'body', [EQUAL_LENGTH_OBJ(4)]
-    ],
-    [
-        'body.mail', [NOT_FALSY, IS_STRING]
-    ],
-    [
-        'body.password', [NOT_FALSY, IS_STRING, GREATER_LENGTH(7), LESS_LENGTH(30), PASSWORD_VALIDATION]
-    ],
-    [
-        'body.photo', [NOT_FALSY, IS_STRING]
-    ],
-    [
-        'body.username', [NOT_FALSY, IS_STRING]
-    ]
-]
+export class BodyMapUserDefault {
+    @IsString()
+    @Matches(/^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/)
+    mail: string
 
-export const BODY_MAP_LOGIN_REQUEST: bodyValidationProps = [
-    [
-        'body', [EQUAL_LENGTH_OBJ(2)]
-    ],
-    [
-        'body.mail', [NOT_FALSY, IS_STRING]
-    ],
-    [
-        'body.password', [NOT_FALSY, IS_STRING, GREATER_LENGTH(7), LESS_LENGTH(30), PASSWORD_VALIDATION]
-    ]
-]
+    @IsString()
+    @MinLength(8)
+    @MaxLength(30)
+    @Matches(PASSWORD_VALIDATION)
+    password: string
+}
 
-export const BODY_MAP_UPDATE_DATA: bodyValidationProps = [
-    [
-        'body', [JUST_THIS_PROPERTIES('description', 'photo', 'color', 'username', 'mail')]
-    ],
-    [   
-        'body.mail?', [NOT_FALSY, IS_STRING, REGEXP(/.+@.+\..+/)]
-    ],
-    [
-        'body.description?', [NOT_FALSY, IS_STRING, LESS_LENGTH(10)]
-    ],
-    [
-        'body.photo?', [NOT_FALSY, IS_STRING]
-    ],
-    [
-        'body.color?', [NOT_FALSY, IS_STRING, REGEXP(/^#[a-zA-Z\d]{3}([a-zA-Z\d]{3})?$/)]
-    ],
-    [
-        'body.username?', [NOT_FALSY, IS_STRING, GREATER_LENGTH(4), LESS_LENGTH(20), REGEXP(/^[\w\d]+$/)]
-    ],
-]
+export class BodyMapUser extends BodyMapUserDefault {
+    @IsString()
+    @IsOptional()
+    photo: string
 
-export const BODY_MAP_CHANGE_PASSWORD: bodyValidationProps = [
-    [
-        'body', [EQUAL_LENGTH_OBJ(2)]
-    ],
-    [
-        'body.password', [NOT_FALSY, IS_STRING, GREATER_LENGTH(7), LESS_LENGTH(30), PASSWORD_VALIDATION]
-    ],
-    [
-        'body.newPassword', [NOT_FALSY, IS_STRING, GREATER_LENGTH(7), LESS_LENGTH(30), PASSWORD_VALIDATION]
-    ]
-]
+    @IsString()
+    @Matches(/^[\w\d]+$/)
+    @MinLength(5)
+    @MaxLength(20)
+    username: string
+}
+
+export class BodyMapUserPasswordChange {
+    @IsString()
+    @MinLength(8)
+    @MaxLength(30)
+    @Matches(PASSWORD_VALIDATION)
+    password: string
+    
+    @IsString()
+    @MinLength(8)
+    @MaxLength(30)
+    @Matches(PASSWORD_VALIDATION)
+    newPassword: string
+}
+
+export class BodyMapUserChanges {
+    @IsString()
+    @IsOptional()
+    @Matches(/^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/)
+    mail: string
+
+    @IsString()
+    @MaxLength(2500)
+    description: string
+
+    @IsOptional()
+    @IsString()
+    photo: string
+
+    @IsOptional()
+    @IsString()
+    @Matches(/^#[a-zA-Z\d]{3}([a-zA-Z\d]{3})?$/)
+    color: string
+}
+
+export class UserFields {
+    @IsOptional()
+    @Transform(
+        fieldsTransform(
+            ['_id', 'mail', 'username', 'userType', 'description', 'photo', 'color'],
+            ['__v', 'password', 'habilited']
+        )
+    )
+    fields: Record<string, number> = { __v: 0, password: 0, habilited: 0 };
+}
+
+
+
+export class UserFieldsLastId extends UserFields {
+    @IsOptional()
+    @Transform(transformObjectId)
+    lastId: Types.ObjectId
+
+    @IsOptional()
+    @IsString()
+    @Matches(/before|after/)
+    time: Types.ObjectId
+}
+
+export class UserParam {
+    @IsOptional()
+    @Transform(transformObjectId)
+    _id: Types.ObjectId
+}

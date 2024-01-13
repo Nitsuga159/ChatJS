@@ -4,6 +4,8 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { PER_EXTEND_PAGE_FRIEND } from './friend-model.type';
 import { FriendService } from 'src/http/friend/friend.service';
+import { FriendQuery } from 'src/http/friend/friend.body';
+import queryFilter from 'src/utils/queryFilter';
 
 @Injectable()
 export class FriendModelService {
@@ -22,27 +24,22 @@ export class FriendModelService {
     )
   }
 
-  async find(userId: Types.ObjectId, lastId: Types.ObjectId, fields: {} = {}) {
+  async find(userId: Types.ObjectId, queryProps: FriendQuery) {
     let query = this.friendModel
       .find(
         {  $or: [{ user1: userId }, { user2: userId }] },
-        fields,
+        queryProps.fields,
       )
       .populate('user1 user2', 'username photo color')
-      .sort({ _id: 'desc' });
 
-    if (lastId) {
-      query = query.where('_id').lt(new Types.ObjectId(lastId) as any);
-    }
-
-    const friends = await query.limit(FriendModelService.PER_PAGE_FRIEND).exec();
+    const friends = await queryFilter({ query, limit: FriendModelService.PER_PAGE_FRIEND, ...queryProps })
 
     return friends.map(({ _id, haveChat, messagesCount, user1, user2 }) => ({
       _id,
       haveChat,
       messagesCount: messagesCount.get(userId),
       friend: (!user1._id.equals(userId) ? user1 : user2) as any,
-    })).reverse()
+    }))
   }
 
   async extendsFind(

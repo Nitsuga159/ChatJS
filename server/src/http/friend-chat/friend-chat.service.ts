@@ -11,6 +11,7 @@ import {
 import { Types } from 'mongoose';
 import { CloudinaryService } from '../cloudinary/cloudinary.service';
 import { DefaultHttpException } from 'src/exceptions/DefaultHttpException';
+import { QueryFilterProps } from 'src/utils/queryFilter';
 
 const ObjectId = Types.ObjectId;
 
@@ -20,14 +21,11 @@ export class FriendChatService {
     private readonly friendChatModelService: FriendChatModelService,
     private readonly friendModelService: FriendModelService,
     private readonly cloudinaryService: CloudinaryService,
+    private readonly wsGateway: Ws
   ) {}
 
-  async get(friendId: Types.ObjectId, userId: Types.ObjectId, lastId?: Types.ObjectId, fields: {} = {}) {
-    const messagesFriendChat = await this.friendChatModelService.get(
-      friendId,
-      lastId,
-      fields
-    );
+  async get(friendId: Types.ObjectId, query: QueryFilterProps) {
+    const messagesFriendChat = await this.friendChatModelService.get(friendId, query);
 
     return {
       continue: messagesFriendChat.length === PER_PAGE_MESSAGES,
@@ -49,6 +47,8 @@ export class FriendChatService {
 
     await friendDocument.save();
 
+    this.wsGateway.addFriendChatMessage(user1, user2, createdMessage)
+
     return createdMessage
   }
 
@@ -68,6 +68,8 @@ export class FriendChatService {
     );
 
     await this.friendChatModelService.delete(ids, friendId, userId);
+
+    this.wsGateway.deleteFriendChatMessage(ids, friendId)
 
     return { ids }
   }

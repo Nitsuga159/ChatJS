@@ -5,12 +5,10 @@ import { AddChatRequest, ChannelChatType } from 'src/database/channel-model/chan
 import { ChannelDocument } from 'src/database/channel-model/channel.model';
 import { UserModelService } from 'src/database/user-model/user-model.service';
 import { DefaultHttpException } from 'src/exceptions/DefaultHttpException';
-import { WS_CHANNEL } from 'src/ws/ws.events';
 import { Ws } from 'src/ws/ws.gateway';
-import { ChannelChatService } from '../channel-chat/channel-chat.service';
 import { ChannelChatModelService } from 'src/database/channel-chat-model/channel-chat-model.service';
-
-const { ObjectId } = Types;
+import { QueryFilterProps } from 'src/utils/queryFilter';
+import { ChannelQuery } from './channel.body';
 
 @Injectable()
 export class ChannelService {
@@ -18,25 +16,24 @@ export class ChannelService {
     private readonly channelModelService: ChannelModelService,
     private readonly channelChatModelService: ChannelChatModelService,
     private readonly userModelService: UserModelService,
-    private readonly ws: Ws,
+    private readonly wsGateway: Ws,
   ) {}
 
   async findAll(
-    userId: string,
-    lastId: string,
-    fields: {} = {}
+    userId: Types.ObjectId,
+    queryProps: ChannelQuery
   ) {
-    return await this.channelModelService.findAll(new ObjectId(userId), lastId, fields);
+    return await this.channelModelService.findAll(userId, queryProps);
   }
 
   async findAllByAdmin(
-    adminId: string,
+    adminId: Types.ObjectId,
     fields: {} = {}
   ) {
-    return await this.channelModelService.findAllByAdmin(new ObjectId(adminId), fields);
+    return await this.channelModelService.findAllByAdmin(adminId, fields);
   }
 
-  async findById(userId: string, channelId: string, fields: {} = {}): Promise<any> {
+  async findById(userId: Types.ObjectId, channelId: Types.ObjectId, fields: {} = {}): Promise<any> {
     const channelDocument = await this.channelModelService.findByOtherData({
       _id: channelId,
       participants: { $in: userId },
@@ -46,7 +43,7 @@ export class ChannelService {
       throw new DefaultHttpException({ status: HttpStatus.BAD_GATEWAY, message: 'Channel not found' })
     }
 
-    return this.channelModelService.mapChannel(new ObjectId(userId), channelDocument)
+    return this.channelModelService.mapChannel(userId, channelDocument)
   }
 
   async create(data: {
@@ -55,8 +52,6 @@ export class ChannelService {
     description?: string;
     photo?: string;
   }): Promise<ChannelDocument> {
-    data.admin = new ObjectId(data.admin.toString());
-
     const countUserChannels = await this.channelModelService.countUserChannel(
       data.admin,
     );
@@ -68,19 +63,19 @@ export class ChannelService {
     return await this.channelModelService.create(data);
   }
 
-  async updateChat(channelId: string, adminId: string, chatId: string, data: any) {
+  async updateChat(channelId: Types.ObjectId, adminId: Types.ObjectId, chatId: Types.ObjectId, data: any) {
     await this.channelModelService.updateChat(
-      new ObjectId(channelId),
-      new ObjectId(adminId),
-      new ObjectId(chatId),
+      channelId,
+      adminId,
+      chatId,
       data
     )
   }
 
-  async update(channelId: string, admindId: string, data: any): Promise<void> {
+  async update(channelId: Types.ObjectId, admindId: Types.ObjectId, data: any): Promise<void> {
     const updatedChannel = await this.channelModelService.update(
-      new ObjectId(channelId),
-      new ObjectId(admindId),
+      channelId,
+      admindId,
       data,
     );
 
@@ -88,24 +83,17 @@ export class ChannelService {
       throw new DefaultHttpException({ status: HttpStatus.NOT_FOUND, message: 'Channel not found' })
     }
 
-    this.ws.emitToGroup(
-      updatedChannel.participants,
-      WS_CHANNEL.UPDATE_CHANNEL,
-      updatedChannel,
-    );
+    this.wsGateway.updateChannel(channelId, data)
   }
 
   async addParticipant(
-    channelId: string | Types.ObjectId,
-    userId: string | Types.ObjectId,
+    channelId: Types.ObjectId,
+    userId: Types.ObjectId,
     fields: {} = {}
   ): Promise<void> {
-    channelId = new ObjectId(channelId.toString());
-    userId = new ObjectId(userId.toString());
-
     await this.channelModelService.addParticipant(channelId, userId);
 
-    const [channel, user] = await Promise.all([
+    const [channel] = await Promise.all([
       this.channelModelService.findById(channelId, fields),
       this.userModelService.findById(userId),
     ]);
@@ -122,81 +110,59 @@ export class ChannelService {
 
     filterParticipants.delete(userId.toString());
 
-    this.ws.emitToGroup(
-      filterParticipants as any,
-      WS_CHANNEL.ADD_CHANNEL_PARTICIPANT,
-      {
-        _id: user._id,
-        username: user.username,
-        color: user.color,
-        photo: user.photo,
-      },
-    );
-    this.ws.emitToOne(userId, WS_CHANNEL.NEW_CHANNEL, {
-      _id: channel._id,
-      name: channel.name,
-      photo: channel.photo,
-    });
+    this.wsGateway.addChannelParticipant(channelId, userId)
 
     return channel.toObject()
   }
 
   async deleteParticipant(
-    channelId: string,
-    adminId: string,
-    participantId: string
+    channelId: Types.ObjectId,
+    adminId: Types.ObjectId,
+    participantId: Types.ObjectId
   ) {
-    const channelDocument = await this.channelModelService.findByOtherData({ 
-      _id: new ObjectId(channelId), 
-      admin: new ObjectId(adminId),
-      participants: { $in: new ObjectId(participantId) }
+    const isValid = await this.channelModelService.exists({ 
+      _id: channelId, 
+      admin: adminId,
+      participants: { $in: participantId }
     })
 
+    if(!isValid) {
+      throw new DefaultHttpException({ status: HttpStatus.BAD_REQUEST, message: 'Data doesn\'t match' })
+    }
+
     await this.channelModelService.deleteParticipant(
-      new ObjectId(channelId),
-      new ObjectId(adminId),
-      new ObjectId(participantId)
+      channelId,
+      adminId,
+      participantId
     );
 
-    this.ws.emitToGroup(
-      channelDocument.participants,
-      WS_CHANNEL.DELETE_CHANNEL_PARTICIPANT,
-      participantId,
-    );
+    this.wsGateway.deleteChannelParticipant(channelId, participantId)
   }
 
   async addChat(data: AddChatRequest ) {
-    const { channelDocument, chat } = await this.channelModelService.addChat(data);
+    const { chat } = await this.channelModelService.addChat(data);
 
-    this.ws.emitToGroup(
-      channelDocument.participants,
-      WS_CHANNEL.ADD_CHANNEL_CHAT,
-      { chat: { ...channelDocument, messagesCount: 0 }, channelId: data.channelId },
-    );
+    this.wsGateway.addChannelChat(data.channelId, chat as any)
 
     return chat
   }
 
   async deleteChat(
-    channelId: string,
-    adminId: string,
-    chatId: string,
+    channelId: Types.ObjectId,
+    adminId: Types.ObjectId,
+    chatId: Types.ObjectId,
   ) {
     //delete chat from channel
     await this.channelModelService.deleteChat(
-      new ObjectId(channelId), 
-      new ObjectId(adminId),
-      new ObjectId(chatId)
+      channelId, 
+      adminId,
+      chatId
     );
 
     //delete messages from chat
-    await this.channelChatModelService.deleteByChat(new ObjectId(channelId), new ObjectId(chatId))
+    await this.channelChatModelService.deleteByChat(channelId, chatId)
 
-    /*this.ws.emitToGroup(
-      channelDocument.participants,
-      WS_CHANNEL.DELETE_CHANNEL_CHAT,
-      { chatId, channelId: channelDocument._id },
-    );*/
+    this.wsGateway.deleteChannelChat(channelId, chatId)
 
     return { chatId }
   }

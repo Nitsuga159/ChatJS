@@ -12,13 +12,12 @@ export interface RequestGetChannelMessages extends DefaultRequestChannel {
 export interface ResponseGetChannelMessages {
   chatId: string;
   continue: boolean;
-  results: ChannelMessage[];
+  messages: ChannelMessage[];
 }
 
 //ADD_CHAT_CHANNEL_MESSAGES
 
 export interface RequestAddChannelMessage extends DefaultRequestChannel {
-  clientId: string;
   chatId: string;
   message: { value?: string; photos?: string[] };
 }

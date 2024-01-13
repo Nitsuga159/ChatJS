@@ -66,14 +66,14 @@ export class UserModelService {
     return await this.userModel.findOne(data, fields ).exec();
   }
 
-  async find(lastId: string, fields: {} = {}): Promise<UserDocument[]> {
+  async find(lastId: Types.ObjectId, fields: {} = {}): Promise<UserDocument[]> {
     let query = this.userModel
       .find({}, fields)
       .populate('userType')
       .sort({ _id: 1 });
 
     if (lastId) {
-      query = query.where('_id').gt(new Types.ObjectId(lastId) as any);
+      query = query.where('_id').gt(lastId as any);
     }
 
     return await query.limit(UserModelService.PER_PAGE_USER).exec();

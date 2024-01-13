@@ -9,11 +9,8 @@ import addChat from "./http-channel/addChat";
 import addMessage from "./http-messages/addMessage";
 import getMessages from "./http-messages/getMessage";
 import deleteMessages from "./http-messages/deleteMessage";
-import addTryCatch from "@/helpers/addTryCatch";
 
 export const channelActions = actions;
-
-type ChannelFetchsKeys = keyof typeof channelFetchs;
 
 const channelFetchs = {
   getChannels,
@@ -27,10 +24,5 @@ const channelFetchs = {
   deleteMessages,
   deleteParticipant,
 };
-
-for (let key in channelFetchs)
-  channelFetchs[key as ChannelFetchsKeys] = addTryCatch(
-    channelFetchs[key as ChannelFetchsKeys]
-  ) as any;
 
 export { channelFetchs };

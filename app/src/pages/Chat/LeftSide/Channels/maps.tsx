@@ -9,10 +9,10 @@ export const mapChannelItem =
       const { name, photo, _id } = array[index] as SimpleChannel
 
       return (
-        <VirtualizedItem key={_id}>
           <ItemSelection
             name={name}
             onClick={() => onClick(_id)}
+            key={_id}
           >
             {
               photo ?
@@ -20,6 +20,5 @@ export const mapChannelItem =
                 <PerfilLetterItem>{name[0].toUpperCase()}</PerfilLetterItem>
             }
           </ItemSelection>
-        </VirtualizedItem>
       )
     };

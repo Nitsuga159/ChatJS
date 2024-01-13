@@ -9,30 +9,28 @@ const getMessages = async ({
   chatId,
   lastId,
   accessToken,
-}: RequestGetChannelMessages): Promise<ResponseGetChannelMessages> => {
+}: RequestGetChannelMessages): Promise<{ status: number, results: ResponseGetChannelMessages}> => {
   const { data } = await axios.get(
-    `/channel-chat/message/${channelId}?chatId=${chatId}&lastId=${
-      lastId || ""
-    }`,
+    `/channel-chat/message/${channelId}?chatId=${chatId}${lastId ? `&lastId=${lastId}` : ''}`,
     utils.createHeaderToken(accessToken)
   );
 
-  return { ...data, channelId, chatId };
+  return data;
 };
 
 export const getMessagesReducer = (
   state: InitialStateChannels,
   action: PayloadAction<ResponseGetChannelMessages>
 ) => {
-  const { chatId, continue: canContinue, results } = action.payload;
+  const { chatId, continue: canContinue, messages } = action.payload;
   const { chats } = state.chat;
-  console.log("se llamo getMessages");
+  
   chats[chatId] = {
     continue: canContinue,
-    lastId: results[0]?._id || null,
+    lastId: messages[0]?._id || null,
     messages: chats[chatId]
-      ? [...results, ...chats[chatId].messages]
-      : [...results],
+      ? [...messages, ...chats[chatId].messages]
+      : [...messages],
   };
 };
 

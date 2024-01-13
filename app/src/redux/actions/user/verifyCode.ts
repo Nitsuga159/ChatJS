@@ -1,14 +1,12 @@
 import axios from "axios";
 
-export default async (data: {
+export default async (body: {
   mail: string;
-  code: string;
-}): Promise<string | null> => {
-  const {
-    data: { result },
-  } = await axios.post("/code-verification", data);
+  code: number;
+}): Promise<{ status: number, results: { accessToken: string } }> => {
+  body.code = +body.code
 
-  if (result) return result;
+  const { data } = await axios.post("/code-verification/verify", body);
 
-  throw "Invalid code";
+  return data
 };

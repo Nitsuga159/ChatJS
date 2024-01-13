@@ -47,7 +47,7 @@ const Error = styled.p`
   text-align: right;
 `;
 
-export default function Field({ name, value, type, onChange, error }: FieldProps) {
+export default function Field({ name, value, type, onChange, error, maxLength }: FieldProps) {
   return (
     <Container>
       <LabelContainer>
@@ -61,6 +61,7 @@ export default function Field({ name, value, type, onChange, error }: FieldProps
         title={name}
         value={value}
         onChange={(e: ChangeEvent<HTMLInputElement>) => onChange(e.target.value, name)}
+        maxLength={maxLength}
       />
     </Container>
   );

@@ -14,11 +14,4 @@ const notificationFetchs = {
   deleteNotification,
 };
 
-type NotificationFetchsKeys = keyof typeof notificationFetchs;
-
-for (let key in notificationFetchs)
-  notificationFetchs[key as NotificationFetchsKeys] = addTryCatch(
-    notificationFetchs[key as NotificationFetchsKeys]
-  ) as any;
-
 export { notificationFetchs };

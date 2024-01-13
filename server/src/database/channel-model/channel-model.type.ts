@@ -5,7 +5,7 @@ interface DefaultItem {
   createdAt?: Date;
 }
 
-export interface AddChatRequest { channelId: string, adminId: string, chatName: string }
+export interface AddChatRequest { channelId: Types.ObjectId, adminId: Types.ObjectId, chatName: string }
 
 export interface ChannelChatType extends DefaultItem {
   _id: Types.ObjectId;

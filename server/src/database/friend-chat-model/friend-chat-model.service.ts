@@ -3,6 +3,7 @@ import { InjectModel } from '@nestjs/mongoose';
 import { FriendChat, FriendChatDocument } from './friend-chat-model';
 import { Model, Types } from 'mongoose';
 import { MessageType, PER_PAGE_MESSAGES } from '../types/message.type';
+import queryFilter, { QueryFilterProps } from 'src/utils/queryFilter';
 
 @Injectable()
 export class FriendChatModelService {
@@ -11,19 +12,14 @@ export class FriendChatModelService {
     private readonly friendChatModel: Model<FriendChatDocument>,
   ) {}
 
-  async get(friendId: Types.ObjectId, lastId?: Types.ObjectId, fields: {} = {}) {
+  async get(friendId: Types.ObjectId, queryProps: QueryFilterProps) {
     let query = this.friendChatModel
-      .find({ friendId }, fields)
-      .sort({ _id: 'desc' })
+      .find({ friendId }, queryProps.fields)
       .populate('message.sender', 'username photo color');
 
-    if (lastId) {
-      query = query.where('_id').lt(new Types.ObjectId(lastId) as any);
-    }
+    const messages = await queryFilter({ query, limit: PER_PAGE_MESSAGES, ...queryProps });
 
-    const messages = await query.limit(PER_PAGE_MESSAGES).exec();
-
-    return messages.reverse();
+    return messages;
   }
 
   async getPhotosMessage(messagesIds: string[]): Promise<string[]> {

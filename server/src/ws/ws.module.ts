@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { MiddlewareConsumer, Module } from '@nestjs/common';
 import { WsService } from './ws.service';
 import { Ws } from './ws.gateway';
 import { FriendModelModule } from 'src/database/friend-model/friend-model.module';

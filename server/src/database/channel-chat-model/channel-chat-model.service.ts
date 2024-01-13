@@ -5,7 +5,10 @@ import { Model, Types } from 'mongoose';
 import {
   ChatMessageData,
   MessageType,
+  PER_PAGE_MESSAGES,
 } from '../types/message.type';
+import queryFilter, { QueryFilterProps } from 'src/utils/queryFilter';
+import { ChannelChatChatId } from 'src/http/channel-chat/channel-chat.body';
 
 @Injectable()
 export class ChannelChatModelService {
@@ -18,24 +21,15 @@ export class ChannelChatModelService {
 
   async get(
     channelId: Types.ObjectId,
-    chatId: Types.ObjectId,
-    lastId?: string,
-    fields: {} = {}
+    queryProps: ChannelChatChatId
   ) {
     let query = this.channelChatModel
-      .find({ channelId, chatId }, fields)
-      .sort({ _id: 'desc' })
+      .find({ channelId, chatId: queryProps.chatId }, queryProps.fields)
       .populate('message.sender', 'username photo color');
 
-    if (lastId) {
-      query = query.where('_id').lt(new Types.ObjectId(lastId) as any);
-    }
+    const messages = await queryFilter({ query, limit: PER_PAGE_MESSAGES, ...queryProps })
 
-    const messages = await query
-      .limit(ChannelChatModelService.PER_PAGE_CHANNEL_CHAT)
-      .exec();
-
-    return messages.reverse();
+    return messages;
   }
 
   async getImageMessages(idsMessages: string[]) {

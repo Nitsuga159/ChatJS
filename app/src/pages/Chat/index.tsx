@@ -41,13 +41,14 @@ export default function Chat() {
 
     const addChannelMessage =
       (message: ChannelMessage) => {
-        dispatch(channelActions.addMessage({ message, isToSend: false }))
+        dispatch(channelActions.addMessage(message))
       }
 
     const deleteChannelMessage =
       (data: ResponseDeleteChannelMessage) => {
         dispatch(channelActions.deleteMessages(data))
       }
+
 
     socket.on(WS_CHANNEL.NEW_CHANNEL_MESSAGE, addChannelMessage);
     socket.on(WS_CHANNEL.DELETE_CHANNEL_MESSAGE, deleteChannelMessage);

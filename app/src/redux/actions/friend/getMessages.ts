@@ -11,15 +11,16 @@ const getMessages = async ({
   friendId,
   accessToken,
   lastId,
-}: RequestGetFriendMessages): Promise<SetGetFriendMessage> => {
-  const { data }: { data: ResponseGetFriendMessage } = await axios.get(
-    `/friend-chat/message/${friendId}?lastId=${lastId || ""}`,
-    {
-      headers: { Authorization: `Bearer ${accessToken}` },
-    }
-  );
+}: RequestGetFriendMessages) => {
+  const { data }: { data: { status: number, results: { cotinue: boolean, friends: ResponseGetFriendMessage } } } =
+    await axios.get(
+      `/friend-chat/message/${friendId}${lastId ? `?lastId=${lastId}` : ''}`,
+      {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      }
+    );
 
-  return { ...data, friendId };
+  return data;
 };
 
 export const getMessageReducer = (

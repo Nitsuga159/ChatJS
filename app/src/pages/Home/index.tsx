@@ -31,8 +31,11 @@ export default function Home() {
   useEffect(() => {
     if (!user) return;
 
-    if (!socket) socketContext.activate(ENVS.SOCKET_URL || 'http://localhost:4040/chat', user.accessToken)
-    else return () => socketContext.disconnect();
+    if (!socket) {
+      socketContext.activate(ENVS.SOCKET_URL || 'http://localhost:4040/chat', user.accessToken)
+    }
+    
+    return () => socketContext.disconnect();
   }, [socket]);
 
   useEffect(() => {

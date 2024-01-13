@@ -2,28 +2,39 @@ import { PayloadAction } from "@reduxjs/toolkit";
 import utils from "@/utils";
 import axios from "axios";
 import { InitialStateChannels } from "@/redux/slices/channel/type";
-import { RequestGetChannels, ResponseGetChannels } from "../type";
+import { RequestGetChannels, ResponseGetChannels, StartRequest } from "../type";
+import { getFetch } from "@/utils/fetch";
+
+let isFirstTime = true
 
 const getChannels = async ({
-  lastId,
+  query,
   accessToken,
-}: RequestGetChannels): Promise<ResponseGetChannels> => {
-  const { data }: { data: ResponseGetChannels } = await axios.get(
-    `/channel?${lastId ? `lastId=${lastId}` : ""}`,
-    utils.createHeaderToken(accessToken)
-  );
+}: RequestGetChannels): Promise<{ status: number, results: ResponseGetChannels }> => {
+  if(isFirstTime) {
+    query.start = StartRequest.FIRST_ONE
+    isFirstTime = false
+  }
 
-  return data;
+  return await getFetch({ 
+    endpoint: '/channel/all', 
+    query: {
+      fields: '_id,name,photo',
+      ...query
+    },
+    headers: utils.createHeaderToken(accessToken)
+  })
 };
 
 export const getChannelsReducer = (
   state: InitialStateChannels,
   action: PayloadAction<ResponseGetChannels>
 ) => {
-  const { results, continue: canContinue } = action.payload;
-  state.channel.lastId = results[results.length - 1]?._id || null;
+  console.log("new channels! ", action.payload.channels)
+
+  const { channels, continue: canContinue } = action.payload;
   state.channel.continue = canContinue;
-  state.channel.channels = [...state.channel.channels, ...results];
+  state.channel.channels = [...state.channel.channels, ...channels];
 };
 
 export default getChannels;

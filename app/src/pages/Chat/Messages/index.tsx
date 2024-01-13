@@ -34,8 +34,7 @@ export default function Messages(
     const item = messages[index] as Message;
     const {
       createdAt,
-      message: { value, sender, photos },
-      status
+      message: { value, sender, photos }
     } = item;
 
     const createdAtDate = new Date(createdAt);
@@ -45,7 +44,7 @@ export default function Messages(
     const isToDelete = messagesToDelete.includes(item._id!)
     const haveMessagesToSend = messagesToDelete.length !== 0
     return (
-      <VirtualizedItem rootId={infiniteScrollId} key={item.clientId}>
+      <VirtualizedItem rootId={infiniteScrollId} key={item._id}>
         {(refresh) =>
         (
           <>{addDate && <CurrentDate date={createdAtDate} />}
@@ -62,7 +61,6 @@ export default function Messages(
                   userPhoto={sender.photo}
                   messagePhotos={photos}
                   refresh={refresh}
-                  status={status}
                   isToDelete={isToDelete}
                   haveMessagesToDelete={haveMessagesToSend}
                 />
@@ -74,7 +72,6 @@ export default function Messages(
                   value={value}
                   createdAt={createdAtDate}
                   refresh={refresh}
-                  status={status}
                   isToDelete={isToDelete}
                   haveMessagesToDelete={haveMessagesToSend}
                 />

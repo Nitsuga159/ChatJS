@@ -18,11 +18,4 @@ const friendFetchs = {
   deleteMessages,
 };
 
-type FriendFetchsKeys = keyof typeof friendFetchs;
-
-for (let key in friendFetchs)
-  friendFetchs[key as FriendFetchsKeys] = addTryCatch(
-    friendFetchs[key as FriendFetchsKeys]
-  ) as any;
-
 export { friendFetchs };

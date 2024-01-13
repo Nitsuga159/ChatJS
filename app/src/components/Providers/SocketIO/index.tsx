@@ -12,7 +12,7 @@ export default function SocketProvider({ children }: { children: ReactNode }) {
   const [socket, setSocket] = useState<Socket | null>(null);
 
   const activate = (url: string, accessToken: string) => {
-    setSocket(io(url, { auth: { accessToken: `Bearer ${accessToken}` } }));
+    setSocket(io(url, { extraHeaders: { authorization: `Bearer ${accessToken}` } }));
   }
 
   const disconnect = () => {

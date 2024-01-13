@@ -3,7 +3,6 @@ import { useDispatch, useSelector } from "react-redux";
 import { FriendTabContainer, FriendTabPhotoContainer, FriendTabUsername, FriendTabsContainer, Username } from "./FriendTabs.styled";
 import { friendActions, friendFetchs } from "@/redux/actions/friend";
 import { getUserState } from "@/redux/slices/user";
-import { DefaultResponse } from "@/types/const.type";
 import { AppDispatch } from "@/redux/store";
 import { failureNotification } from "@/helpers/notify";
 import FriendTabSkeleton from "@/components/Skeletons/FriendTabSkeleton";
@@ -16,11 +15,15 @@ export default function FriendTabs() {
   const accessToken = useSelector(getUserState).user!.accessToken;
 
   const getFriends = async () => {
-    const { ok, data, error } =
-      await friendFetchs.getFriends({ lastId: null, accessToken }) as any as DefaultResponse;
+    try {
 
-    if (ok) dispatch(friendActions.getFriends(data));
-    else failureNotification('Cannot Get Friends');
+      const { results } = await friendFetchs.getFriends({ lastId: null, accessToken });
+
+      dispatch(friendActions.getFriends(results));
+    } catch (e: any) {
+
+      failureNotification('Cannot Get Friends');
+    }
   }
 
   const renderFriendTab = (index: number) => {

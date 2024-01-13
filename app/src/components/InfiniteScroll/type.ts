@@ -1,10 +1,12 @@
+import { StartRequest, TimeRequest } from "@/redux/actions/channel/type";
+
 export interface InfiniteScrollProps {
   id?: string;
   size?: { height: number; width: number };
   resetCb?: (cb: () => void) => void;
   itemsLength: number;
   renderItem: (index: number) => JSX.Element;
-  fetchItems: () => Promise<void>;
+  fetchItems: (time?: TimeRequest) => Promise<void>;
   loading: JSX.Element;
   hasMore: boolean;
   margin?: number;
@@ -21,4 +23,5 @@ export interface IRefsInfiniteScroll {
   isAtTop: boolean;
   itemsCount: number;
   haveScroll: boolean;
+  time: TimeRequest,
 }

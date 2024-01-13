@@ -1,4 +1,4 @@
-import { HttpStatus, Injectable } from '@nestjs/common';
+import { HttpStatus, Injectable, Logger } from '@nestjs/common';
 import { compare, hash } from 'bcrypt';
 import { sign } from 'jsonwebtoken';
 import {
@@ -28,15 +28,16 @@ export class UsersService {
 
   async create(user: UserRequest): Promise<UserDocument> {
     const createdUser = await this.userModelService.create(user);
-
+    
     if (!createdUser) {
       throw new DefaultHttpException({ status: HttpStatus.CONFLICT, message: 'Failed to create user' })
     }
-
+    
     return createdUser;
   }
-
+  
   async login(data: LoginRequest) {
+    Logger.log(`start with data ${JSON.stringify(data)}`, "login")
 
     const user: any = await this.findByOtherData({ mail: data.mail });
 
@@ -44,49 +45,39 @@ export class UsersService {
       throw new DefaultHttpException({ status: HttpStatus.BAD_REQUEST, message: 'Invalid User' })
     }
 
-    if (this.ws.isConnected(user._id)) throw 'User is already connected';
-
     const { _id } = user;
-
-    return { accessToken: sign({ _id }, ENVS.JWT_USER_SECRET) }
+    
+    const response  = { accessToken: sign({ _id }, ENVS.JWT_USER_SECRET) }
+    
+    Logger.log(`access_token: ${JSON.stringify(response)}`, 'Login')
+    
+    return response
   }
-
-  async loginToken({
-    username,
-    mail,
-    color,
-    photo,
-    _id,
-  }: any) {
-    if (this.ws.isConnected(_id)) throw 'User is already connected';
-
-    return {
-      username,
-      mail,
-      color,
-      photo,
-      _id,
-      accessToken: sign({ _id }, ENVS.JWT_USER_SECRET),
-    };
-  }
-
+  
   async findByOtherData(data: any): Promise<UserDocument> {
     const foundUser = await this.userModelService.findByOtherData(data);
-
-    if (!foundUser) throw new DefaultHttpException({ status: 400, message: 'Invalid credencials' });
-
+    
+    if (!foundUser) {
+      throw new DefaultHttpException({ status: 400, message: 'Invalid credencials' });
+    }
+    
     return foundUser;
   }
-
+  
   async findById(id: string | Types.ObjectId, fields: {} = {}): Promise<UserDocument> {
-    const foundUser = await this.userModelService.findById(id, fields);
+    Logger.log(`start with id ${id}`, "find user")
+
+    
+    const foundUser = (await this.userModelService.findById(id, fields)).toObject({ useProjection: true });
+    
+    Logger.log(`sending user ${JSON.stringify(foundUser)}`, "find user")
 
     return foundUser;
   }
-
-  async find(lastId: string, _fields: {} = {}): Promise<FindUserResponse> {
+  
+  async find(lastId: Types.ObjectId, _fields: {} = {}): Promise<FindUserResponse> {
     const users = await this.userModelService.find(lastId, _fields);
-
+    
     return {
       continue: users.length === UserModelService.PER_PAGE_USER,
       result: users,
@@ -97,21 +88,21 @@ export class UsersService {
     if (!Object.values(data).length) {
       throw new DefaultHttpException({ status: HttpStatus.BAD_REQUEST, message: 'Invalid data' })
     }
-
+    
     id = new ObjectId(id.toString());
-
+    
     const updatedUser = (
       await this.userModelService.findByIdAndUpdate(id, data, fields)
-    ).toObject();
-
-    return updatedUser;
-  }
+      ).toObject();
+      
+      return updatedUser;
+    }
 
   async changePassword(
     _id: string,
     { password, newPassword }: ChangePasswordType,
-  ): Promise<boolean> {
-    const foundedUser = await this.userModelService.findById(_id);
+    ): Promise<boolean> {
+      const foundedUser = await this.userModelService.findById(_id);
 
     if (!(await compare(password, foundedUser.password))) {
       throw new DefaultHttpException({ status: HttpStatus.NOT_ACCEPTABLE, message: 'Invalid password' })

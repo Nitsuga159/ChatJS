@@ -3,13 +3,14 @@ import { Types } from 'mongoose';
 import { ChannelChatDocument } from 'src/database/channel-chat-model/channel-chat-model';
 import { ChannelChatModelService } from 'src/database/channel-chat-model/channel-chat-model.service';
 import { ChannelModelService } from 'src/database/channel-model/channel-model.service';
-import { ChannelDocument } from 'src/database/channel-model/channel.model';
 import {
   ChatMessageData,
   MessageType,
 } from 'src/database/types/message.type';
 import { CloudinaryService } from '../cloudinary/cloudinary.service';
 import { DefaultHttpException } from 'src/exceptions/DefaultHttpException';
+import { Ws } from 'src/ws/ws.gateway';
+import { ChannelChatChatId } from './channel-chat.body';
 
 @Injectable()
 export class ChannelChatService {
@@ -17,14 +18,14 @@ export class ChannelChatService {
     private readonly channelChatModelService: ChannelChatModelService,
     private readonly channelModelService: ChannelModelService,
     private readonly cloudinaryService: CloudinaryService,
+    private readonly wsGateway: Ws
   ) {}
  
   async get(
     userId: Types.ObjectId,
     channelId: Types.ObjectId,
-    chatId: Types.ObjectId,
-    lastId?: string,
-    fields: {} = {}
+    queryProps: ChannelChatChatId
+    
   ) {
     const isMember = await this.channelModelService.isMember({ userId, channelId })
 
@@ -34,9 +35,7 @@ export class ChannelChatService {
 
     const messagesChannelChat = await this.channelChatModelService.get(
       channelId,
-      chatId,
-      lastId,
-      fields
+      queryProps
     );
 
     return {
@@ -76,6 +75,8 @@ export class ChannelChatService {
 
     await channelDocument.save()
 
+    this.wsGateway.addChannelChatMessage(createdMessage)
+
     return createdMessage
   }
 
@@ -104,6 +105,8 @@ export class ChannelChatService {
     allPhotos.forEach((url) =>
       this.cloudinaryService.deleteImage(url.match(/CHATJS\/\w+/)[0]),
     );
+
+    this.wsGateway.deleteChannelChatMessage(ids, channelId, chatId)
 
     return { ids }
   }

@@ -1,12 +1,11 @@
-import { Controller, Delete, Get, HttpCode, HttpStatus, Post, Req, UseGuards, } from '@nestjs/common';
+import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Param, Post, Query, Req, UseGuards, } from '@nestjs/common';
 import { NotificationService } from './notification.service';
 import {
   NotificationType,
 } from 'src/database/notification-model/notification-model.type';
-import bodyValidationMiddleware from 'src/middlewares/bodyValidation/dataValidation.middleware';
 import { UserAccessTokenMiddleware } from '../user/user.middleware';
 import makeResponse from 'src/utils/makeResponse';
-import NOTIFICATION_MAP from './notification.body';
+import { BodyNotificationChannel, BodyNotificationFriend, NotificationQuery, NotificationId } from './notification.body';
 
 @Controller('notification')
 @UseGuards(UserAccessTokenMiddleware)
@@ -14,12 +13,11 @@ export class NotificationController {
   constructor(private readonly notificationService: NotificationService) { }
 
   @Get()
-  async find(@Req() req: any) {
+  async find(@Req() req: any, @Query() query: NotificationQuery) {
     return makeResponse(
       await this.notificationService.find(
         req.accessTokenPayload._id,
-        req.query.lastId,
-        req._fields
+        query
       ),
       HttpStatus.OK
     )
@@ -27,10 +25,9 @@ export class NotificationController {
 
   @Post('friend')
   @HttpCode(HttpStatus.CREATED)
-  @UseGuards(bodyValidationMiddleware(NOTIFICATION_MAP.FRIEND_NOTIFICATION))
-  async friendNotification(@Req() { body, accessTokenPayload }: any) {
+  async friendNotification(@Req() { accessTokenPayload }: any, @Body() { destined }: BodyNotificationFriend) {
     await this.notificationService.createFriendNotification({
-      destined: body.destined,
+      destined,
       sender: accessTokenPayload._id,
       type: NotificationType.FRIEND,
       invitationId: accessTokenPayload._id
@@ -41,13 +38,12 @@ export class NotificationController {
 
   @Post('channel')
   @HttpCode(HttpStatus.CREATED)
-  @UseGuards(bodyValidationMiddleware(NOTIFICATION_MAP.CHANNEL_NOTIFICATION))
-  async channelNotification(@Req() { body, accessTokenPayload }: any) {
+  async channelNotification(@Req() { accessTokenPayload }: any, @Body() { destined, channelId }: BodyNotificationChannel) {
     await this.notificationService.createChannelNotification({
-      destined: body.destined,
+      destined,
       sender: accessTokenPayload._id,
       type: NotificationType.CHANNEL,
-      invitationId: body.channelId
+      invitationId: channelId
     });
 
     return makeResponse({ success: true }, HttpStatus.CREATED)
@@ -55,9 +51,9 @@ export class NotificationController {
 
   @Delete(':notificationId')
   @HttpCode(HttpStatus.OK)
-  async delete(@Req() { notficationId, accessTokenPayload }: any) {
+  async delete(@Req() { accessTokenPayload }: any, @Param() { notificationId }: NotificationId) {
     return makeResponse(
-      await this.notificationService.delete(notficationId, accessTokenPayload._id),
+      await this.notificationService.delete(notificationId, accessTokenPayload._id),
       HttpStatus.OK
     )
   }

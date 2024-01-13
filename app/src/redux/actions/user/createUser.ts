@@ -8,9 +8,7 @@ export default async (
   },
   mailToken: string
 ): Promise<boolean> => {
-  await axios.post("/user", data, {
-    headers: { Authorization: `Bearer ${mailToken}` },
-  });
+  await axios.post(`/user/register?tokenMail=${mailToken}`, data);
 
   return true;
 };

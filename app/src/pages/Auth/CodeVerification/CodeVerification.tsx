@@ -48,24 +48,17 @@ export default function CodeVerification({ registerData, setMode }: CodeVerifica
 
     addLoader(COLORS.FOLLY);
 
+    try {
+
     const resultCode = await userFetchs.verifyCode({ mail, code });
 
     inputRefs.forEach((input) => (input as HTMLInputElement).value = "");
 
-    try {
-      if (!resultCode)
-        throw {
-          title: "Failed Code",
-          text: "The code you entered is incorrect."
-        };
-
-      const { ok } = await userFetchs.createUser({ mail, password, username }, resultCode) as any as DefaultResponse;
-
-      if (!ok) throw "Some error occurred during registration. Please wait some time and try again."
+      const ok = await userFetchs.createUser({ mail, password, username }, resultCode.results.accessToken);
 
       succesNotification("Now you can login and enjoy!")
-    } catch (message: any) {
-      failureNotification(message);
+    } catch (e: any) {
+      failureNotification(e.response.data.message);
     } finally {
       removeLoader();
     }

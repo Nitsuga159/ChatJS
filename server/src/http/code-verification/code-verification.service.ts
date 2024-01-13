@@ -22,13 +22,12 @@ export class CodeVerificationService {
     private readonly mailService: MailService,
   ) {}
 
-  async create({ mail, xTransactionId }: { mail: string, xTransactionId: string }): Promise<boolean> {
+  async create({ mail }: { mail: string }): Promise<boolean> {
     const findUser: User | null = await this.userService.findByOtherData({
       mail,
     })
 
     if (findUser) {
-      this.logger.debug(`Error to create code, user is already registered - ${xTransactionId}`)
       throw new DefaultHttpException({ status: HttpStatus.CONFLICT, message: 'The user is already registered' })
     }
 
@@ -44,25 +43,19 @@ export class CodeVerificationService {
       .findOneAndUpdate(filter, update, options)
       .exec();
 
-    this.logger.debug(`Sending mail created code - ${xTransactionId}`)
-
     await this.mailService.sendEmail(
       mail,
       'code',
       `<h1>Your code is</h1><p>${code}</p>`,
     )
 
-    this.logger.debug(`Mail sended - ${xTransactionId}`)
-
     return true;
   }
 
-  async verify(data: { mail: string; code: number }, xTransactionId: string): Promise<{ accessToken: string }> {   
+  async verify(data: { mail: string; code: number }): Promise<{ accessToken: string }> {   
     const { deletedCount } = await this.codeVerificationModel
     .deleteOne(data)
     .exec();
-
-    this.logger.debug(`Code verification delated -> ${deletedCount} | ${data.code} - ${xTransactionId}`)
 
     if(deletedCount === 0) {
       throw new DefaultHttpException({ status: HttpStatus.CONFLICT, message: 'Invalid coute', results: { success: false } })

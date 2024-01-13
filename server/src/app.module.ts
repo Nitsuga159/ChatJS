@@ -14,15 +14,4 @@ const ConnectionMongoDB = MongooseModule.forRoot(
   imports: [ConnectionMongoDB, HttpModule, PeerModule],
 })
 export class AppModule {
-  public configure(consumer: MiddlewareConsumer): void {
-    consumer
-    .apply(
-      dataValidation({ headers: [{ key: 'x-transaction-id', value: /\d+transaction\d+/, message: 'Transaction id must have another value', }]})
-    ).forRoutes('*')
-    .apply(
-      dataValidation({ query: [{ key: 'tokenMail', message: 'must not be null' }] })
-    ).forRoutes('/user/register');
-
-    
-  }
 }

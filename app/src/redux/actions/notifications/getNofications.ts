@@ -3,14 +3,13 @@ import axios from "axios";
 import { PayloadAction } from "@reduxjs/toolkit";
 import { RequestGetNotifications, ResponseGetNotifications } from "./type";
 import { InitialStateNotification } from "@/redux/slices/notifications/type";
-import defaultError from "@/helpers/defaultError";
 
 const getNotifications = async ({
   lastId,
   accessToken,
 }: RequestGetNotifications): Promise<ResponseGetNotifications> => {
   const { data } = await axios.get(
-    `/notification?lastId=${lastId || ""}`,
+    `/notification${lastId || `?lastId=${lastId}`}`,
     utils.createHeaderToken(accessToken)
   );
 

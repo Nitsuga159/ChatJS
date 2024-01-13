@@ -2,7 +2,20 @@ import { useCallback, UIEvent, useEffect, useRef, useState } from "react";
 import GetSize from "../GetSize";
 import { IRefsInfiniteScroll, InfiniteScrollProps } from "./type";
 import calculateDiference from "./calculateDifference";
+import { TimeRequest } from "@/redux/actions/channel/type";
 
+/*
+  ANNOTATIONS:
+    - ScrollHeight the total height of scroll
+    - ClientHeight the visible height of scroll
+    - ScrollTop the current scroll number
+*/
+
+/**
+ * 
+ * @param props: { id: uuid, resetCb } 
+ * @returns 
+ */
 export default function InfiniteScroll(
   { id, resetCb, size, ref, itemsLength, renderItem, fetchItems, margin = 0, loading, hasMore, up, className }:
     InfiniteScrollProps
@@ -14,7 +27,8 @@ export default function InfiniteScroll(
     isSearching: false,
     haveScroll: false,
     isAtTop: !up ? true : false,
-    isAtBottom: up ? true : false
+    isAtBottom: up ? true : false,
+    time: TimeRequest.AFTER
   });
   const [loadingHeight, setLoadingHeight] = useState<number>(0);
 
@@ -23,7 +37,8 @@ export default function InfiniteScroll(
       refs.isSearching = true;
       refs.haveScroll = refs.infiniteScrollRef.scrollHeight !== refs.infiniteScrollRef.clientHeight && (!size?.height ? true : refs.infiniteScrollRef.scrollHeight > size.height);
       //await new Promise((r) => setTimeout(() => r(1), 3000));
-      fetchItems();
+ 
+      fetchItems(TimeRequest.AFTER);
     }
   };
 
@@ -46,16 +61,18 @@ export default function InfiniteScroll(
     const { scrollHeight, clientHeight, scrollTop } = e.target as HTMLDivElement;
 
     refs.isAtTop = scrollTop === 0;
-    refs.isAtBottom = scrollHeight - clientHeight === scrollTop;
+    refs.isAtBottom = scrollHeight - clientHeight <= scrollTop;
 
-    const condition: boolean = up ?
-      scrollTop <= loadingHeight + margin :
-      scrollHeight - clientHeight - margin - loadingHeight <= scrollTop;
+    const condition: boolean = scrollHeight - clientHeight - margin - loadingHeight <= scrollTop;
 
-    if (!refs.isSearching && hasMore && condition) {
+    let prevTime = refs.time
+    refs.time = condition ? TimeRequest.AFTER : TimeRequest.BEFORE
+
+    if (!refs.isSearching && (hasMore || prevTime !== refs.time) && condition) {
       //await new Promise((r) => setTimeout(() => r(1), 3000));
       refs.isSearching = true;
-      fetchItems()
+
+      fetchItems(refs.time)
     }
   }, [margin, up, fetchItems, loadingHeight]);
 
@@ -88,6 +105,12 @@ export default function InfiniteScroll(
       refs.isAtBottom = up ? true : false
     })
   }, []);
+
+  useEffect(() => {
+    if(refs.isAtBottom && refs.infiniteScrollRef) {
+      refs.infiniteScrollRef.scrollTop = 2000000000000000
+    } 
+  }, [items])
 
   return (
     <div

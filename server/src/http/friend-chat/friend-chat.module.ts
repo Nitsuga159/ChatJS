@@ -5,10 +5,11 @@ import { UserModelModule } from 'src/database/user-model/user-model.module';
 import { FriendChatModelModule } from 'src/database/friend-chat-model/friend-chat-model.module';
 import { FriendModelModule } from 'src/database/friend-model/friend-model.module';
 import { CloudinaryModule } from '../cloudinary/cloudinary.module';
-import fieldsQueryMiddleware from 'src/middlewares/fieldsQuery/fieldsQuery.middleware';
+import { WsModule } from 'src/ws/ws.module';
 
 @Module({
   imports: [
+    WsModule,
     FriendChatModelModule,
     FriendModelModule,
     UserModelModule,
@@ -17,13 +18,5 @@ import fieldsQueryMiddleware from 'src/middlewares/fieldsQuery/fieldsQuery.middl
   controllers: [FriendChatController],
   providers: [FriendChatService],
 })
-export class FriendChatModule implements NestModule {
-  configure(consumer: MiddlewareConsumer) {
-    consumer.apply(
-      fieldsQueryMiddleware({ 
-        allFields: ['_id', 'friendId', 'message', 'createdAt', 'updatedAt'], 
-        fieldsToOmitDefault: ['__v'] 
-      }))
-      .forRoutes('/friend-chat/*')
-  }
+export class FriendChatModule {
 }

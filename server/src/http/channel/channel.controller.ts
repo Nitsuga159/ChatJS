@@ -1,4 +1,5 @@
 import {
+  Body,
   Controller,
   Delete,
   Get,
@@ -12,10 +13,7 @@ import {
   Req,
   UseGuards,
 } from '@nestjs/common';
-import { ChannelDocument } from 'src/database/channel-model/channel.model';
 import { ChannelService } from './channel.service';
-import validateProps from 'src/middlewares/validate-props/validateProps.middleware';
-import { PROPS_UPDATE_CHANNEL } from './channel.type';
 import { NotificationMiddleware } from 'src/database/notification-model/notification-model.middleware';
 import {
   AdminMiddleware,
@@ -23,11 +21,10 @@ import {
   FindChatMiddleware,
 } from 'src/database/channel-model/channel-model.middleware';
 import { UserAccessTokenMiddleware } from '../user/user.middleware';
-import bodyValidationMiddleware from 'src/middlewares/bodyValidation/dataValidation.middleware';
-import { BODY_MAP_CHANNEL_ADD_CHAT, BODY_MAP_CHANNEL_CREATE, BODY_MAP_CHECK_CHANNEL_NOTIFICATION, MAP_DELETE_CHANNEL_CHAT, MAP_DELETE_PARTICIPANT_CHANNEL, MAP_UPDATE_CHANNEL, MAP_UPDATE_CHANNEL_CHAT } from './channel.body';
 import makeResponse from 'src/utils/makeResponse';
-import dataValidationMiddleware from 'src/middlewares/bodyValidation/dataValidation.middleware';
 import { Types } from 'mongoose';
+import { BodyMapChannelAddChat, BodyMapChannel, BodyMapUpdateChannelChat, ChannelChatId, ChannelQuery, ChannelId } from './channel.body';
+import { QueryParameters } from 'src/utils/validators';
 
 @Controller('channel')
 @UseGuards(UserAccessTokenMiddleware)
@@ -36,50 +33,48 @@ export class ChannelController {
 
   @Get('admin')
   @HttpCode(HttpStatus.OK)
-  async findAllByAdmin(@Req() req: any) {
+  async findAllByAdmin(@Req() req: any, @Query() { fields }: ChannelQuery) {
     return makeResponse(
-      await this.channelService.findAllByAdmin(req.accessTokenPayload._id, req._fields),
+      await this.channelService.findAllByAdmin(req.accessTokenPayload._id, fields),
       HttpStatus.OK
     )
   }
 
   @Get('all')
   @HttpCode(HttpStatus.OK)
-  async findAll(@Req() req: any, @Query('lastId') lastId: string) {
+  async findAll(@Req() req: any, @Query() query: ChannelQuery,) {
     return makeResponse(
-      await this.channelService.findAll(req.accessTokenPayload._id, lastId, req._fields),
+      await this.channelService.findAll(req.accessTokenPayload._id, query),
       HttpStatus.OK
     )
   }
 
   @Get(':channelId')
   @HttpCode(HttpStatus.OK)
-  async findById(@Req() req: any, @Param('channelId') channelId: string) {
+  async findById(@Req() req: any, @Param() { channelId }: ChannelId, @Query() { fields }: ChannelQuery) {
     return makeResponse(
-      await this.channelService.findById(req.accessTokenPayload._id, channelId, req._fields),
+      await this.channelService.findById(req.accessTokenPayload._id, channelId, fields),
       HttpStatus.OK
     )
   }
 
   @Post('create')
   @HttpCode(HttpStatus.CREATED)
-  @UseGuards(UserAccessTokenMiddleware, bodyValidationMiddleware(BODY_MAP_CHANNEL_CREATE))
-  async create(@Req() req: any) {
+  async create(@Req() req: any, @Body() body: BodyMapChannel) {
     return makeResponse(
-      await this.channelService.create({ ...req.body, admin: req.accessTokenPayload._id }),
+      await this.channelService.create({ ...body, admin: req.accessTokenPayload._id }),
       HttpStatus.CREATED
     )
   }
 
   @Post('chat/:channelId')
   @HttpCode(HttpStatus.CREATED)
-  @UseGuards(bodyValidationMiddleware(BODY_MAP_CHANNEL_ADD_CHAT))
-  async addChat(@Req() req: any, @Param('channelId') channelId) {
+  async addChat(@Req() req: any, @Param() { channelId }: ChannelId, @Body() { chatName }: BodyMapChannelAddChat) {
     return makeResponse(
       await this.channelService.addChat({ 
           channelId, 
+          chatName,
           adminId: req.accessTokenPayload._id, 
-          chatName: req.body.chatName 
       }),
       HttpStatus.CREATED
     )
@@ -87,12 +82,12 @@ export class ChannelController {
 
   @Post('participant')
   @HttpCode(HttpStatus.OK)
-  @UseGuards(bodyValidationMiddleware(BODY_MAP_CHECK_CHANNEL_NOTIFICATION), NotificationMiddleware)
-  async addParticipant(@Req() req: any) {
+  @UseGuards(NotificationMiddleware)
+  async addParticipant(@Req() req: any, @Query() { fields }: ChannelQuery) {
     return await this.channelService.addParticipant(
       req.body.invitationId,
       req.accessTokenPayload._id,
-      req._fields
+      fields
     );
   }
 
@@ -115,32 +110,29 @@ export class ChannelController {
 
   @Put('chat/:channelId')
   @HttpCode(HttpStatus.OK)
-  @UseGuards(bodyValidationMiddleware(MAP_UPDATE_CHANNEL_CHAT))
-  async updateChat(@Req() req: any) {
+  async updateChat(@Req() req: any, @Param() { channelId }: ChannelId, @Query() { chatId }: ChannelChatId, @Body() data: BodyMapUpdateChannelChat) {
     await this.channelService.updateChat(
-      req.params.channelId, 
+      channelId, 
       req.accessTokenPayload._id, 
-      req.query.chatId, 
-      req.body
+      chatId, 
+      data
     );
 
     return makeResponse({ success: true }, HttpStatus.OK)
   }
 
   @Put(':channelId')
-  @UseGuards(dataValidationMiddleware(MAP_UPDATE_CHANNEL))
-  async update(@Req() req: any) {
-    await this.channelService.update(req.params.channelId, req.accessTokenPayload._id, req.body);
+  async update(@Req() req: any, @Param() { channelId }: ChannelId, @Body() data: BodyMapChannel) {
+    await this.channelService.update(channelId, req.accessTokenPayload._id, data);
 
     return makeResponse({ success: true }, HttpStatus.OK)
   }
 
 
   @Delete('participant/:channelId')
-  @UseGuards(dataValidationMiddleware(MAP_DELETE_PARTICIPANT_CHANNEL))
-  async deleteParticipant(@Req() req: any) {
+  async deleteParticipant(@Req() req: any, @Param() params: ChannelId) {
     await this.channelService.deleteParticipant(
-      req.params.channelId,
+      params.channelId,
       req.accessTokenPayload._id,
       req.query.participantId
     );
@@ -149,11 +141,10 @@ export class ChannelController {
   }
 
   @Delete('chat/:channelId')
-  @UseGuards(dataValidationMiddleware(MAP_DELETE_CHANNEL_CHAT))
   @HttpCode(HttpStatus.OK)
-  async deleteChat(@Req() req: any, @Param('channelId') channelId: string, @Query('chatId') chatId: string) {
+  async deleteChat(@Req() req: any, @Param() params: ChannelId, @Query() query: ChannelChatId) {
     return makeResponse(
-      await this.channelService.deleteChat(channelId, req.accessTokenPayload._id, chatId),
+      await this.channelService.deleteChat(params.channelId, req.accessTokenPayload._id, query.chatId),
       HttpStatus.OK
     )
   }

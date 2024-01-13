@@ -10,8 +10,8 @@ import axios from "axios";
 const getChannelDetail = async ({
   channelId,
   accessToken,
-}: DefaultRequestChannel): Promise<ChannelDetail> => {
-  const { data }: { data: ChannelDetail } = await axios.get(
+}: DefaultRequestChannel): Promise<{ status: number, results: ChannelDetail}> => {
+  const { data } = await axios.get(
     `/channel/${channelId}`,
     utils.createHeaderToken(accessToken)
   );
@@ -23,6 +23,8 @@ export const getChannelDetailReducer = (
   state: InitialStateChannels,
   action: PayloadAction<ChannelDetail>
 ) => {
+  console.log("channel detail", action.payload)
+  
   state.channel.channelDetail = action.payload;
 };
 

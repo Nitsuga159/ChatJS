@@ -4,4 +4,6 @@ export interface FieldProps {
   type: string;
   onChange: (newValue: string, name: string) => void;
   error?: string;
+  maxLength?: number
+  minLength?: number
 }

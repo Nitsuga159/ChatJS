@@ -1,5 +1,3 @@
-import { initSocket } from "@/SocketIO";
-import ENVS from "@/envs";
 import { InitialStateUser, User } from "@/types/user.type";
 import { PayloadAction } from "@reduxjs/toolkit";
 import axios from "axios";
@@ -7,7 +5,7 @@ import axios from "axios";
 const login = async (user: {
   mail: string;
   password: string;
-}): Promise<User> => {
+}): Promise<{ status: number, results: { accessToken: string }, message: string }> => {
   await new Promise<void>((resolve) =>
     setTimeout(() => {
       resolve();

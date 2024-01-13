@@ -2,7 +2,6 @@ import * as S from "./Channels.styled";
 import { channelActions, channelFetchs } from "@/redux/actions/channel";
 import { getChannelState } from "@/redux/slices/channel";
 import { getUserState } from "@/redux/slices/user";
-import { DefaultResponse } from "@/types/const.type";
 import { useCallback, useContext } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { mapChannelItem } from "./maps";
@@ -12,6 +11,7 @@ import { ChatMode } from "@/redux/slices/general/type";
 import { generalActions } from "@/redux/actions/general";
 import ItemSelectionSkeleton from "@/components/Skeletons/ItemSelectionSkeleton";
 import { SocketContext } from "@/components/Providers/SocketIO";
+import { StartRequest, TimeRequest } from "@/redux/actions/channel/type";
 
 export default function Channels() {
   const socket = useContext(SocketContext).socket;
@@ -20,24 +20,38 @@ export default function Channels() {
   const { channels, lastId, continue: canContinue, channelDetail } = useSelector(getChannelState);
   const { chatMode } = useSelector(getGeneralState);
 
-  const getChannels = useCallback(async () => {
+  const getChannels = useCallback(async (time?: TimeRequest) => {
 
     //await new Promise((r) => setTimeout(() => r(1), 3000));
-    const { ok, data, error } = await channelFetchs.getChannels(
-      { lastId, accessToken: user?.accessToken! }
-    ) as any as DefaultResponse
+    try {
+      const { results } = await channelFetchs.getChannels({
+        query: {
+          lastId: time ? channels.at(time === TimeRequest.AFTER ? -1 : 0)?._id || null : null, time
+        },
+        accessToken: user!.accessToken
+      })
 
-    if (ok) dispatch(channelActions.getChannels(data))
-    else failureNotification(error!);
-  }, [lastId]);
+      dispatch(channelActions.getChannels(results))
+    } catch (e: any) {
+      console.log("error channel get", e)
+      failureNotification(e.response.data.message);
+    }
+  }, [lastId, channels]);
 
   const handleOnSelect = useCallback(async (channelId: string) => {
     if (channelDetail?._id !== channelId) {
       dispatch(channelActions.setCurrentChannelChatId(null));
-      const { ok, data, error } = await channelFetchs.getChannelDetail({ channelId, accessToken: user?.accessToken! }) as any as DefaultResponse
 
-      if (ok) dispatch(channelActions.getChannelDetail(data));
-      else failureNotification(error!);
+      try {
+
+        const { results } = await channelFetchs.getChannelDetail({ channelId, accessToken: user?.accessToken! })
+
+        socket?.emit("ROOM", { _id: results._id })
+
+        dispatch(channelActions.getChannelDetail(results));
+      } catch (e: any) {
+        failureNotification(e.response.data.message);
+      }
     }
 
     if (chatMode !== ChatMode.CHANNEL_CHAT) dispatch(generalActions.setChatMode(ChatMode.CHANNEL_CHAT))

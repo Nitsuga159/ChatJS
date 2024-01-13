@@ -4,6 +4,8 @@ import { Model, Types } from 'mongoose';
 import { Notification, NotificationDocument } from './notification-model';
 import { NotificationType, NotificationRequest, PER_PAGE_NOTIFICATIONS } from './notification-model.type';
 import { DefaultHttpException } from 'src/exceptions/DefaultHttpException';
+import queryFilter, { QueryFilterProps } from 'src/utils/queryFilter';
+import { NotificationQuery } from 'src/http/notification/notification.body';
 
 @Injectable()
 export class NotificationModelService {
@@ -31,20 +33,14 @@ export class NotificationModelService {
 
   async find(
     destined: Types.ObjectId,
-    lastId?: string,
-    fields: {} = {}
+    queryProps: NotificationQuery
   ): Promise<NotificationDocument[]> {
     let query = this.notificationModel
-      .find({ destined }, fields)
+      .find({ destined }, queryProps.fields)
       .populate('sender', 'username photo color');
 
-    if (lastId) {
-      query = query.where('_id').gt(new Types.ObjectId(lastId) as any);
-    }
-
-    const notifications: NotificationDocument[] = await query
-      .limit(PER_PAGE_NOTIFICATIONS)
-      .exec();
+    const notifications: NotificationDocument[] = 
+      await queryFilter({ query, limit: PER_PAGE_NOTIFICATIONS, ...queryProps })
 
     return notifications.map((notification) => notification.toObject());
   }

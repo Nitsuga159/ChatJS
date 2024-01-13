@@ -1,16 +1,16 @@
-import { bodyValidationProps } from "src/middlewares/bodyValidation/dataValidation.middleware"
-import { CallbackValidator, EQUAL_LENGTH_OBJ, IS_NUMBER, IS_STRING, IS_TYPEOF, NOT_FALSY } from "src/utils/validators"
+import { IsNumber, IsOptional, IsString, Matches } from "class-validator";
 
-const BODY_MAP_VERIFY_CODE: bodyValidationProps = [
-    [
-        'body', [EQUAL_LENGTH_OBJ(2)]
-    ],
-    [
-        'body.mail', [NOT_FALSY, IS_STRING]
-    ],
-    [
-        'body.code', [NOT_FALSY, IS_NUMBER],
-    ]
-]
+export class CodeVerification {
+    @IsString()
+    @Matches(/^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/)
+    mail: string
+}
 
-export default BODY_MAP_VERIFY_CODE
+export class CodeVerificationVerify {
+    @IsString()
+    @Matches(/^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/)
+    mail: string
+
+    @IsNumber()
+    code: number
+}

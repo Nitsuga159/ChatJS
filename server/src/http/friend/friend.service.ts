@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { FriendModelService } from 'src/database/friend-model/friend-model.service';
 import { Types } from 'mongoose';
+import { FriendQuery } from './friend.body';
 
 @Injectable()
 export class FriendService {
@@ -12,9 +13,9 @@ export class FriendService {
     return await this.friendModelService.add(user1, user2, fields);
   }
 
-  async find(userId: Types.ObjectId, lastId: Types.ObjectId, fields: {} = {}) {
+  async find(userId: Types.ObjectId, query: FriendQuery) {
 
-    let friends = await this.friendModelService.find(userId, lastId, fields);
+    let friends = await this.friendModelService.find(userId, query);
 
     return {
       continue: friends.length === FriendModelService.PER_PAGE_FRIEND,

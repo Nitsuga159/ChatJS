@@ -1,10 +1,8 @@
-import { Controller, Delete, Get, HttpCode, HttpStatus, Post, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Param, Post, Query, Req, UseGuards } from '@nestjs/common';
 import { ChannelChatService } from './channel-chat.service';
 import { UserAccessTokenMiddleware } from '../user/user.middleware';
-import { Types } from 'mongoose';
 import makeResponse from 'src/utils/makeResponse';
-import CHANNEL_CHAT_BODY from './channel-chat.body';
-import dataValidationMiddleware from 'src/middlewares/bodyValidation/dataValidation.middleware';
+import { BodyChannelChatData, BodyChannelChatMessage, ChannelChatChannelId, ChannelChatChatId, ChannelChatQuery, ChannelChatIds } from './channel-chat.body';
 
 @Controller('channel-chat')
 @UseGuards(UserAccessTokenMiddleware)
@@ -13,15 +11,12 @@ export class ChannelChatController {
 
   @Get('message/:channelId')
   @HttpCode(HttpStatus.OK)
-  @UseGuards(dataValidationMiddleware(CHANNEL_CHAT_BODY.GET_CHANNEL_CHAT_MESSAGES))
-  async get(@Req() req: any) {
+  async get(@Req() req: any, @Param() { channelId }: ChannelChatChannelId, @Query() query: ChannelChatChatId) {
     return makeResponse(
       await this.channelChatService.get(
-        new Types.ObjectId(req.accessTokenPayload._id),
-        new Types.ObjectId(req.params.channelId),
-        new Types.ObjectId(req.query.chatId),
-        req.query.lastId,
-        req._fields
+        req.accessTokenPayload._id,
+        channelId,
+        query
       ),
       HttpStatus.OK
     )
@@ -29,26 +24,29 @@ export class ChannelChatController {
 
   @Post('message')
   @HttpCode(HttpStatus.CREATED)
-  @UseGuards(dataValidationMiddleware(CHANNEL_CHAT_BODY.ADD_CHANNEL_CHAT_MESSAGE))
-  async add(@Req() req: any) {
-    const message = await this.channelChatService.add(
-      req.body.channelChatData,
-      { ...req.body.message, sender: req.accessTokenPayload._id },
-      req._fields
+  async add(@Req() req: any, @Body('channelChatData') channelChatData: BodyChannelChatData, @Body('message') message: BodyChannelChatMessage, @Query() query: ChannelChatQuery) {
+    const createdMessage = await this.channelChatService.add(
+      channelChatData,
+      { ...message, sender: req.accessTokenPayload._id },
+      query.fields
     )
 
-    return makeResponse(message, HttpStatus.CREATED)
+    return makeResponse(createdMessage, HttpStatus.CREATED)
   }
   
   @Delete('message/:channelId')
   @HttpCode(HttpStatus.OK)
-  @UseGuards(dataValidationMiddleware(CHANNEL_CHAT_BODY.DELETE_CHANNEL_CHAT_MESSAGES))
-  async delete(@Req() { query, params, accessTokenPayload }: any) {
+  async delete(
+    @Req() { accessTokenPayload }: any, 
+    @Query() { chatId }: ChannelChatChatId, 
+    @Param() { channelId }: ChannelChatChannelId,
+    @Query() { ids }: ChannelChatIds
+  ) {
     return makeResponse(
       await this.channelChatService.delete(
-        query.ids.split(','),
-        params.channelId,
-        query.chatId,
+        ids.split(','),
+        channelId,
+        chatId,
         accessTokenPayload._id
       ),
       HttpStatus.OK

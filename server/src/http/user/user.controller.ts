@@ -12,15 +12,11 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { UsersService } from './user.service';
-import { UserDocument } from '../../database/user-model/user-model';
 import { CodeVerificationMiddleware } from 'src/database/code-verification-model/code-verification-model.middleware';
-import {
-  UserRequest,
-} from '../../database/user-model/user-model.type';
-import bodyValidationMiddleware from 'src/middlewares/bodyValidation/dataValidation.middleware';
-import { BODY_MAP_CHANGE_PASSWORD, BODY_MAP_LOGIN_REQUEST, BODY_MAP_UPDATE_DATA, BODY_MAP_USER } from './user.body';
 import { UserAccessTokenMiddleware } from './user.middleware';
 import makeResponse from 'src/utils/makeResponse';
+import { BodyMapUser, BodyMapUserDefault, BodyMapUserPasswordChange, UserFields, UserFieldsLastId, UserParam } from './user.body';
+
 
 @Controller('user')
 export class UserController {
@@ -29,9 +25,10 @@ export class UserController {
   @Get('info')
   @HttpCode(HttpStatus.OK)
   @UseGuards(UserAccessTokenMiddleware)
-  async getUserInfo(@Req() req: any) {
+  async getUserInfo(@Req() req: any, @Query() query: UserFields) {
+
     return makeResponse(
-      await this.usersService.findById(req.accessTokenPayload._id, req._fields),
+      await this.usersService.findById(req.accessTokenPayload._id, query.fields),
       HttpStatus.OK
     )
   }
@@ -39,9 +36,9 @@ export class UserController {
   @Get('info/all')
   @HttpCode(HttpStatus.OK)
   @UseGuards(UserAccessTokenMiddleware)
-  async findUsers(@Req() req: any, @Query('lastId') lastId: string) { 
+  async findUsers(@Query() query: UserFieldsLastId) { 
     return makeResponse(
-      this.usersService.find(lastId, req._fields),
+      this.usersService.find(query.lastId, query.fields),
       HttpStatus.OK
     ) 
   }
@@ -52,10 +49,11 @@ export class UserController {
   async findByUsername(
     @Query('username') username: string = "",
     @Query('lastId') lastId: string,
-    @Req() { accessTokenPayload, _fields }: any,
+    @Req() { accessTokenPayload }: any,
+    @Query() query: UserFields
   ) {
     return makeResponse(
-      await this.usersService.findByUsername(username, lastId, accessTokenPayload._id, _fields),
+      await this.usersService.findByUsername(username, lastId, accessTokenPayload._id, query.fields),
       HttpStatus.OK
     )
   }
@@ -63,37 +61,38 @@ export class UserController {
   @Get('info/:_id')
   @HttpCode(HttpStatus.OK)
   @UseGuards(UserAccessTokenMiddleware)
-  async getUserInfoSelected(@Param('_id') _id: string, @Req() req: any) {
+  async getUserInfoSelected(@Param() params: UserParam, @Query() query: UserFields) {
     return makeResponse(
-      await this.usersService.findById(_id, req._fields),
+      await this.usersService.findById(params._id, query.fields),
       HttpStatus.OK
     )
   }
 
   @Post('login')
   @HttpCode(HttpStatus.OK)
-  @UseGuards(bodyValidationMiddleware(BODY_MAP_LOGIN_REQUEST))
-  async login(@Req() req: any) { return makeResponse(await this.usersService.login(req.body), HttpStatus.OK) }
+  async login(@Body() body: BodyMapUserDefault) { 
+    return makeResponse(await this.usersService.login(body), HttpStatus.OK) 
+  }
 
   @Post('register')
-  @UseGuards(bodyValidationMiddleware(BODY_MAP_USER), CodeVerificationMiddleware)
-  async createUser(@Body() user: UserRequest): Promise<UserDocument> { return await this.usersService.create(user) }
+  @UseGuards(CodeVerificationMiddleware)
+  async createUser(@Body() user: BodyMapUser) { return await this.usersService.create(user) }
 
   @Put('update')
-  @UseGuards(UserAccessTokenMiddleware, bodyValidationMiddleware(BODY_MAP_UPDATE_DATA))
-  async update(@Req() req: any) {
+  @UseGuards(UserAccessTokenMiddleware)
+  async update(@Req() req: any, @Query() query: UserFields) {
     return makeResponse(
-      await this.usersService.update(req.accessTokenPayload._id, req.body, req._fields),
+      await this.usersService.update(req.accessTokenPayload._id, req.body, query.fields),
       HttpStatus.CREATED
     )
   }
 
   @Put('change-password')
   @HttpCode(HttpStatus.CREATED)
-  @UseGuards(UserAccessTokenMiddleware, bodyValidationMiddleware(BODY_MAP_CHANGE_PASSWORD))
-  async changePassword(@Req() req: any) { 
+  @UseGuards(UserAccessTokenMiddleware)
+  async changePassword(@Req() req: any, @Body() body: BodyMapUserPasswordChange) { 
     return { status: HttpStatus.CREATED, results: {
-      success:await this.usersService.changePassword(req.accessTokenPayload._id, req.body)
+      success:await this.usersService.changePassword(req.accessTokenPayload._id, body)
     }} 
   }
 

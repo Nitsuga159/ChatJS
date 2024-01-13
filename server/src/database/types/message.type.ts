@@ -13,4 +13,4 @@ export interface MessageType {
 
 export type SeenMessageType = { messageIds: string[]; userId: string };
 
-export const PER_PAGE_MESSAGES: number = 10;
+export const PER_PAGE_MESSAGES: number = 30;

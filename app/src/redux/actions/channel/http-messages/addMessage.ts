@@ -10,37 +10,29 @@ import { RequestAddChannelMessage } from "./type";
 const addMessage = async ({
   chatId,
   channelId,
-  clientId,
   message,
   accessToken,
 }: RequestAddChannelMessage): Promise<void> => {
   await axios.post(
-    `/channel-chat/message/${channelId}?chatId=${chatId}&clientId=${clientId}`,
-    message,
-    utils.createHeaderToken(accessToken)
+    '/channel-chat/message',
+    { channelChatData: { channelId, chatId }, message },
+    utils.createHeaderToken(accessToken),
   );
 };
 
 export const addMessageReducer = (
   state: InitialStateChannels,
-  action: PayloadAction<{ message: ChannelMessage; isToSend: boolean }>
+  action: PayloadAction<ChannelMessage>
 ) => {
-  const { message, isToSend } = action.payload;
-  const { channelId, chatId } = message;
+  const message = action.payload;
+  const { chatId } = message
   const { channelDetail } = state.channel;
   const { chats } = state.chat;
 
-  if (chats[chatId]) {
-    let messages = [];
-    if (isToSend) {
-      messages = [...chats[chatId].messages, message];
-    } else {
-      messages = [...chats[chatId].messages];
-      let foundMessage = false;
+  console.log("message!", action.payload)
 
-      for (let i = messages.length - 1; i >= 0 && !foundMessage; i--)
-        if (messages[i].clientId === message.clientId) messages[i] = message;
-    }
+  if (chats[chatId]) {
+    let messages = [...chats[chatId].messages, message];
 
     chats[chatId] = {
       ...chats[chatId],
@@ -48,16 +40,16 @@ export const addMessageReducer = (
     };
   }
 
-  if (channelDetail?._id === channelId) {
-    const indexChat = channelDetail.chats.findIndex(
-      ({ _id }) => chatId === _id
-    );
-    const chat = channelDetail.chats[indexChat];
-    channelDetail.chats[indexChat] = {
-      ...chat,
-      messagesCount: chat.messagesCount + 1,
-    };
-  }
+  // if (channelDetail?._id === channelId) {
+  //   const indexChat = channelDetail.chats.findIndex(
+  //     ({ _id }) => chatId === _id
+  //   );
+  //   const chat = channelDetail.chats[indexChat];
+  //   channelDetail.chats[indexChat] = {
+  //     ...chat,
+  //     messagesCount: chat.messagesCount + 1,
+  //   };
+  // }
 };
 
 export default addMessage;

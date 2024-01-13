@@ -1,40 +1,33 @@
-import { ConnectedSocket, MessageBody, SubscribeMessage, WebSocketGateway, WebSocketServer } from '@nestjs/websockets';
+import { ConnectedSocket, MessageBody, SubscribeMessage, WebSocketGateway, WebSocketServer, WsException, WsResponse } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
 import { WsService } from './ws.service';
 import { Types } from 'mongoose';
 import { verify } from 'jsonwebtoken';
 import ENVS from 'src/envs';
-import { HttpException, HttpStatus, UseGuards } from '@nestjs/common';
-import { FriendModelService } from 'src/database/friend-model/friend-model.service';
-import { PER_EXTEND_PAGE_FRIEND } from 'src/database/friend-model/friend-model.type';
-import { WS_CHANNEL, WS_FRIEND, WS_USER } from './ws.events';
-import { ChannelChatModelService } from 'src/database/channel-chat-model/channel-chat-model.service';
-import dataValidationMiddleware from 'src/middlewares/bodyValidation/dataValidation.middleware';
-import WS_BODY from './ws.body';
+import { HttpException, HttpStatus, Logger } from '@nestjs/common';
+import { WS_CHANNEL, WS_CONNECTION, WS_FRIEND, WS_NOTIFICATION } from './ws.events';
+import { ChannelChatDocument } from 'src/database/channel-chat-model/channel-chat-model';
+import { FriendChatDocument } from 'src/database/friend-chat-model/friend-chat-model';
 
 @WebSocketGateway(4040, {
   cors: false,
   namespace: 'chat',
 })
 export class Ws {
-  constructor(
-    private readonly friendModelService: FriendModelService,
-    private readonly channelChatModelService: ChannelChatModelService,
-    private readonly wsService: WsService,
-  ) {}
+  constructor(private readonly wsService: WsService) {}
+
   @WebSocketServer() server: Server;
+
+  private sockets: Map<string, Socket> = new Map()
 
   async handleConnection(socket: Socket) {
     try {
-      console.log('New client connected!');
-      
+      Logger.debug('New client connected!');
+
       const tokenUser: string = socket.handshake.headers.authorization.split(' ')[1];
       const { _id }: any = verify(tokenUser, ENVS.JWT_USER_SECRET);
 
-
-      this.wsService.set(_id, socket);
-
-      this.connectionEvent(_id, WS_USER.USER_CONNECTION);
+      this.sockets.set(_id, socket)
     } catch (e: any) {
       socket.disconnect(true)
     }
@@ -42,16 +35,13 @@ export class Ws {
 
   async handleDisconnect(socket: Socket) {
     try {
-      console.log('Client disconnected');
+      Logger.debug('Client disconnected');
+
       const tokenUser: string = socket.handshake.auth.accessToken.split(' ')[1];
 
       const { _id }: any = verify(tokenUser, ENVS.JWT_USER_SECRET);
 
-      const deletedSocket: Socket = this.wsService.delete(_id);
-      console.log(deletedSocket);
-      if (!deletedSocket) return;
-
-      this.connectionEvent(_id, WS_USER.USER_DISCONNECTION);
+      this.sockets.delete(_id)
     } catch (e: any) {
       return new HttpException(
         `Error to disconnect: ${e}`,
@@ -64,54 +54,72 @@ export class Ws {
     return this.wsService.has(id);
   }
 
-  emitToOne(
-    id: Types.ObjectId,
-    event: WS_CHANNEL | WS_FRIEND | WS_USER,
-    data: any,
-  ): void {
-    this.wsService.get(id)?.emit(event, data);
-  }
-
-  emitToGroup(
-    ids: Types.ObjectId[],
-    event: WS_CHANNEL | WS_FRIEND | WS_USER,
-    data: any,
-  ): void {
-    ids.forEach((id: Types.ObjectId) => {
-      this.wsService.get(id)?.emit(event, data);
-    });
-  }
-
-  async connectionEvent(
-    userId: Types.ObjectId,
-    type: WS_USER.USER_CONNECTION | WS_USER.USER_DISCONNECTION,
-  ): Promise<void> {
-    let page = 0;
-    while (true) {
-      const friendsIds: Types.ObjectId[] =
-        await this.friendModelService.extendsFind(
-          new Types.ObjectId(userId),
-          page,
-        );
-
-      if (friendsIds.length < PER_EXTEND_PAGE_FRIEND) break;
-
-      this.emitToGroup(friendsIds, WS_USER[type], { userId });
-
-      page++;
-    }
-  }
-
-  @SubscribeMessage(WS_CHANNEL.NEW_CHANNEL_MESSAGE)
-  @UseGuards(dataValidationMiddleware(WS_BODY.NEW_CHANNEL_MESSAGE, "WS"))
-  newChannelMessage(@MessageBody() body: any, @ConnectedSocket() client: Socket) {
-    //this.channelChatModelService.add({  })
-  }
-
   @SubscribeMessage('ping')
   test(@MessageBody() body: any, @ConnectedSocket() client: Socket) {
     console.log("pong", typeof body)
 
-    client.emit("pong", { message: 'this is a test event' })
+    console.log(this.server)
+
+    this.server.emit("pong", { message: 'this is a test event' })
+  }
+
+  @SubscribeMessage(WS_CONNECTION.ROOM)
+  room(@MessageBody() body: any, @ConnectedSocket() client: Socket) {
+    Logger.debug(`Connect client to ${JSON.stringify(body)}`, "WebSockets - ROOM")
+
+    client.join(body._id)
+  }
+
+  //MESSAGES
+
+  async addChannelChatMessage(createdMessage: ChannelChatDocument) {
+    Logger.debug(`Sending message to channel ${createdMessage.channelId.toString()}`, "WebSockets - CHANNEL MESSAGE")
+
+    this.server.to(createdMessage.channelId.toString()).emit(WS_CHANNEL.NEW_CHANNEL_MESSAGE, createdMessage)
+  }
+
+  async addFriendChatMessage(user1: Types.ObjectId, user2: Types.ObjectId, createdMessage: FriendChatDocument) {
+    this.sockets.get(user1.toString())?.emit(WS_FRIEND.NEW_FRIEND_MESSAGE, createdMessage)
+    this.sockets.get(user2.toString())?.emit(WS_FRIEND.NEW_FRIEND_MESSAGE, createdMessage)
+  }
+
+  async deleteChannelChatMessage(ids: string[], channelId: Types.ObjectId, chatId: Types.ObjectId) {
+    this.server.to(channelId.toString()).emit(WS_CHANNEL.DELETE_CHANNEL_MESSAGE, { chatId, ids })
+  }
+
+  async deleteFriendChatMessage(ids: string[], friendId: Types.ObjectId) {
+    this.server.to(friendId.toString()).emit(WS_FRIEND.DELETE_FRIEND_MESSAGE, { ids })
+  }
+
+  //CHANNEL
+
+  async updateChannel(channelId: Types.ObjectId, data: any) {
+    this.server.to(channelId.toString()).emit(WS_CHANNEL.UPDATE_CHANNEL, data)
+  }
+
+  async deleteChannel(channelId: Types.ObjectId) {
+    this.server.to(channelId.toString()).emit(WS_CHANNEL.DELETE_CHANNEL)
+  }
+
+  async addChannelParticipant(channelId: Types.ObjectId, userId: Types.ObjectId) {
+    this.server.to(channelId.toString()).emit(WS_CHANNEL.ADD_CHANNEL_PARTICIPANT, { userId })
+  }
+
+  async deleteChannelParticipant(channelId: Types.ObjectId, userId: Types.ObjectId) {
+    this.server.to(channelId.toString()).emit(WS_CHANNEL.DELETE_CHANNEL_PARTICIPANT, { userId })
+  }
+
+  async addChannelChat(channelId: Types.ObjectId, chat: { _id: Types.ObjectId, chatName: string, messagesCount: number }) {
+    this.server.to(channelId.toString()).emit(WS_CHANNEL.ADD_CHANNEL_PARTICIPANT, chat)
+  }
+
+  async deleteChannelChat(channelId: Types.ObjectId, chatId: Types.ObjectId) {
+    this.server.to(channelId.toString()).emit(WS_CHANNEL.DELETE_CHANNEL_PARTICIPANT, chatId)
+  }
+
+  //NOTIFICATION
+
+  async sendNotification(userId: Types.ObjectId, invitationId: Types.ObjectId) {
+    this.sockets.get(userId.toString())?.emit(WS_NOTIFICATION.SEND_NOTIFICATION, { invitationId })
   }
 }

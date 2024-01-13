@@ -25,11 +25,15 @@ export default function ChannelMessages({ chatId }: { chatId: string; }) {
 
     const { _id } = channelDetail
     const { lastId } = chat
-    const { ok, data, error } =
-      (await channelFetchs.getMessages({ channelId: _id, chatId: chatId, lastId, accessToken, })) as any as DefaultResponse;
 
-    if (ok) dispatch(channelActions.getMessages(data));
-    else failureNotification(error!);
+    try {
+      const { results } =
+        (await channelFetchs.getMessages({ channelId: _id, chatId: chatId, lastId, accessToken, }));
+
+      dispatch(channelActions.getMessages({ ...results, chatId }));
+    } catch (e: any) {
+      failureNotification(e.response.data.message);
+    }
   }, [chat, channelDetail, chatId]);
 
   const setMessage = async (value: string, files: File[]) => {
@@ -39,28 +43,8 @@ export default function ChannelMessages({ chatId }: { chatId: string; }) {
       accessToken,
       channelId: channelDetail!._id,
       chatId,
-      clientId: uuidV4(),
       message: { value: value ? value : '' },
     };
-
-    dispatch(channelActions.addMessage({
-      message: {
-        ...newMessage,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-        status: MessageStatus.WAITING,
-        message: {
-          value: value ? value : '',
-          photos: files.map(url => URL.createObjectURL(url)),
-          sender: {
-            _id,
-            photo: photo || undefined,
-            color,
-            username
-          }
-        }
-      }, isToSend: true
-    }));
 
     try {
       let updatedMessage = {
@@ -71,10 +55,7 @@ export default function ChannelMessages({ chatId }: { chatId: string; }) {
         }
       };
 
-      const { ok } = await channelFetchs.addMessage(updatedMessage) as any as DefaultResponse;
-
-      if (!ok) throw new Error();
-
+      await channelFetchs.addMessage(updatedMessage);
     } catch (e: any) {
       dispatch(channelActions.errorMessageToSend(newMessage.clientId))
     }

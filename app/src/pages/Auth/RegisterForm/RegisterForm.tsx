@@ -1,4 +1,4 @@
-import { ChangeEvent, SetStateAction, useEffect, useState } from 'react';
+import { SetStateAction, useEffect, useState } from 'react';
 import { IoArrowBackSharp } from 'react-icons/io5';
 import { UserRegister, UserRegisterKeys } from '@/types/user.type';
 import { Mode } from '@/types/auth.type';
@@ -62,14 +62,21 @@ export default function RegisterForm({
       Object.values(inputErrors)
         .some((error: string) => error !== "");
 
-    if (isError) return;
+    if (isError) {
+      return;
+    }
 
     addLoader(COLORS.FOLLY);
+    try {
 
-    const { ok, error } = await userFetchs.createCodeVerification(inputs.mail) as any as DefaultResponse;
+      const data = await userFetchs.createCodeVerification(inputs.mail);
 
-    if (ok) handleRegisterFormSubmit(inputs);
-    else failureNotification(error!)
+      if (data.results.success) {
+        handleRegisterFormSubmit(inputs);
+      }
+    } catch (e: any) {
+      failureNotification(e.response.data.message)
+    }
 
     removeLoader();
   };

@@ -7,14 +7,25 @@ import {
 } from "@/redux/slices/channel/type";
 import { SimpleUser } from "@/types/user.type";
 
+export enum TimeRequest {
+  BEFORE = 'before',
+  AFTER = 'after'
+}
+
+export enum StartRequest {
+  LAST_ONE = 'last-one',
+  FIRST_ONE = 'first-one'
+}
+
+
 export interface RequestGetChannels {
-  lastId: string | null;
+  query: { lastId: string | null, time?: TimeRequest, start?: StartRequest }
   accessToken: string;
 }
 
 export interface ResponseGetChannels {
   continue: boolean;
-  results: SimpleChannel[];
+  channels: SimpleChannel[];
 }
 
 //ADD_CHANNEL

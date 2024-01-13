@@ -27,7 +27,7 @@ const repeatPassword = (repeatPassword: string, password: string): string => {
 };
 
 const mail = (mail: string): string => {
-  if (!/^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/.test(mail))
+  if (!/^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(mail))
     return "must be a valid email address";
 
   return "";
