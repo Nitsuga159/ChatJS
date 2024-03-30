@@ -2,17 +2,20 @@ import {
   ChannelMessage,
   DefaultRequestChannel,
 } from "@/redux/slices/channel/type";
+import { DirectionRequest, TimeRequest } from "../type";
 
 //GET_CHAT_CHANNEL_MESSAGES
 export interface RequestGetChannelMessages extends DefaultRequestChannel {
-  lastId: string | null;
-  chatId: string;
+  query: { chatId: string, to: DirectionRequest, time: TimeRequest,  lastId: string | null }
 }
 
 export interface ResponseGetChannelMessages {
-  chatId: string;
   continue: boolean;
   messages: ChannelMessage[];
+}
+
+export interface PayloadGetChannelMessages extends Omit<ResponseGetChannelMessages, 'continue'> {
+  chatId: string
 }
 
 //ADD_CHAT_CHANNEL_MESSAGES

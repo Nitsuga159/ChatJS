@@ -1,8 +1,10 @@
-import { useCallback, UIEvent, useEffect, useRef, useState } from "react";
+import { useCallback, UIEvent, useEffect, useRef, useState, useLayoutEffect } from "react";
 import GetSize from "../GetSize";
-import { IRefsInfiniteScroll, InfiniteScrollProps } from "./type";
-import calculateDiference from "./calculateDifference";
-import { TimeRequest } from "@/redux/actions/channel/type";
+import { IRefsInfiniteScroll, InfiniteScrollProps, SettingsScroll } from "./type";
+import { DirectionRequest, TimeRequest } from "@/redux/actions/channel/type";
+import wait from "@/utils/wait";
+import { useDispatch, useSelector } from "react-redux";
+import { actions, getScrollItems } from "@/redux/slices/scrollItems";
 
 /*
   ANNOTATIONS:
@@ -13,116 +15,163 @@ import { TimeRequest } from "@/redux/actions/channel/type";
 
 /**
  * 
- * @param props: { id: uuid, resetCb } 
+ * @param props: { id: uuid } 
  * @returns 
  */
 export default function InfiniteScroll(
-  { id, resetCb, size, ref, itemsLength, renderItem, fetchItems, margin = 0, loading, hasMore, up, className }:
+  { id, loading, className, startFrom, giveRef, renderItem, fetchItems, scrollItemsKey, maxItems, maxVirtualItems, margin = 0 }:
     InfiniteScrollProps
 ) {
   const { current: refs } = useRef<IRefsInfiniteScroll>({
     infiniteScrollRef: null,
-    itemsCount: -Infinity,
-    prevScrollHeight: 0,
-    isSearching: false,
-    haveScroll: false,
-    isAtTop: !up ? true : false,
-    isAtBottom: up ? true : false,
-    time: TimeRequest.AFTER
+    timeout: 100,
+    functionId: null,
+    lastScrolls: {}
   });
-  const [loadingHeight, setLoadingHeight] = useState<number>(0);
 
-  const check = async () => {
-    if (refs.infiniteScrollRef && hasMore && !refs.isSearching && !refs.haveScroll) {
-      refs.isSearching = true;
-      refs.haveScroll = refs.infiniteScrollRef.scrollHeight !== refs.infiniteScrollRef.clientHeight && (!size?.height ? true : refs.infiniteScrollRef.scrollHeight > size.height);
-      //await new Promise((r) => setTimeout(() => r(1), 3000));
- 
-      fetchItems(TimeRequest.AFTER);
+  const [config, setConfig] = useState({ isFetching: false })
+  const [actualLoadingHeight, setActualLoadingHeight] = useState<number>(0);
+  const scrollItems = useSelector(getScrollItems)[scrollItemsKey] || { items: [], virtualItems: [], continueFetchingDown: true, continueFetchingUp: true, lastScrollStop: 0, maxItems, maxVirtualItems }
+  const items = scrollItems.items
+  const dispatch = useDispatch()
+
+  const hasScroll = useCallback(() => {
+    const beforeHeight = scrollItems.continueFetchingUp ? actualLoadingHeight : 0
+    const afterHeight = scrollItems.continueFetchingDown ? actualLoadingHeight : 0
+
+    return refs.infiniteScrollRef ? Math.floor(refs.infiniteScrollRef.scrollHeight - (beforeHeight + afterHeight)) > refs.infiniteScrollRef.clientHeight : false
+  }, [scrollItems.continueFetchingDown, scrollItems.continueFetchingUp, actualLoadingHeight])
+
+  useEffect(() => {
+    if (scrollItemsKey !== refs.scrollItemsKey && refs.lastScrolls[scrollItemsKey] !== undefined) {
+      refs.infiniteScrollRef!.scrollTop = refs.lastScrolls[scrollItemsKey]
     }
-  };
 
-  const readjust = useCallback(() => {
-    if (!refs.infiniteScrollRef) return;
+    refs.scrollItemsKey = scrollItemsKey
+  }, [scrollItemsKey])
 
-    const { prevScrollHeight, infiniteScrollRef } = refs;
-    const { scrollHeight, scrollTop } = infiniteScrollRef;
+  useEffect(() => {
+    if (config.isFetching || hasScroll() || (!scrollItems.continueFetchingDown && !scrollItems.continueFetchingUp)) {
+      return;
+    }
 
-    const diff = calculateDiference(
-      { scrollHeight, prevScrollHeight, scrollTop, loadingHeight, up: up === true }
-    );
+    const lastId = items.length ? items.at(startFrom === DirectionRequest.DOWN ? -1 : 0)._id : null
 
-    refs.prevScrollHeight = scrollHeight;
-
-    refs.infiniteScrollRef.scrollTop += diff;
-  }, [up, loadingHeight]);
+    setConfig({ isFetching: true })
+    fetchItems(startFrom === DirectionRequest.DOWN ? TimeRequest.AFTER : TimeRequest.BEFORE, startFrom, lastId)
+      .then(response => {
+        dispatch(actions.set({
+          id: scrollItemsKey,
+          items: response?.newItems || [],
+          continueFetchingDown: Boolean(startFrom === DirectionRequest.DOWN && response?.continue),
+          continueFetchingUp: Boolean(startFrom === DirectionRequest.UP && response?.continue),
+          direction: startFrom!
+        }))
+      })
+      .catch(err => console.error("There was an error", err))
+      .finally(() => setConfig({ isFetching: false }))
+  }, [items, config, scrollItems, hasScroll])
 
   const handleScroll = useCallback(async (e: UIEvent<HTMLDivElement>) => {
     const { scrollHeight, clientHeight, scrollTop } = e.target as HTMLDivElement;
 
-    refs.isAtTop = scrollTop === 0;
-    refs.isAtBottom = scrollHeight - clientHeight <= scrollTop;
+    const lastScroll = refs.lastScrolls[scrollItemsKey] || 0
+    const goToDown = scrollTop > lastScroll
+    refs.lastScrolls[scrollItemsKey] = scrollTop
 
-    const condition: boolean = scrollHeight - clientHeight - margin - loadingHeight <= scrollTop;
+    //CAN REQUEST
+    let directionTime = null;
+    const beforeHeight = scrollItems.continueFetchingUp ? actualLoadingHeight : 0
+    const afterHeight = scrollItems.continueFetchingDown ? actualLoadingHeight : 0
 
-    let prevTime = refs.time
-    refs.time = condition ? TimeRequest.AFTER : TimeRequest.BEFORE
-
-    if (!refs.isSearching && (hasMore || prevTime !== refs.time) && condition) {
-      //await new Promise((r) => setTimeout(() => r(1), 3000));
-      refs.isSearching = true;
-
-      fetchItems(refs.time)
+    if (scrollTop - margin <= beforeHeight && !goToDown) {
+      directionTime = TimeRequest.BEFORE
+    } else if (scrollTop >= scrollHeight - clientHeight - (afterHeight) - margin && goToDown) {
+      directionTime = TimeRequest.AFTER
     }
-  }, [margin, up, fetchItems, loadingHeight]);
 
-  useEffect(() => {
-    if (hasMore) {
-      if (itemsLength === refs.itemsCount) return readjust();
-      refs.itemsCount = itemsLength;
-      refs.isSearching = false;
-      check();
+    const currentTime = directionTime
+
+    const isAfterTime = currentTime === TimeRequest.AFTER
+
+    if (!config.isFetching && ((scrollItems.continueFetchingDown && isAfterTime) || (scrollItems.continueFetchingUp && !isAfterTime)) && currentTime) {
+      setConfig({ isFetching: true })
+
+      const lastId = items.at(isAfterTime ? -1 : 0)._id
+      refs.lastItemId = lastId
+
+      await wait(3)
+
+      try {
+        const results = await fetchItems(currentTime!, startFrom!, lastId!)
+
+        if (!results) return;
+
+        dispatch(actions.set({
+          id: scrollItemsKey,
+          items: results?.newItems as any[],
+          continueFetchingDown: results.continue,
+          continueFetchingUp: results.continue,
+          direction: currentTime === TimeRequest.AFTER ? DirectionRequest.DOWN : DirectionRequest.UP
+        }))
+      } finally {
+        setConfig({ isFetching: false })
+      }
     }
-  }, [itemsLength, hasMore, check]);
-
-  if (up) useEffect(() => {
-    if (refs.isAtBottom && refs.infiniteScrollRef) refs.infiniteScrollRef.scrollTop = refs.infiniteScrollRef.scrollHeight
-  }, [itemsLength, up]);
+  }, [margin, scrollItemsKey, hasScroll, items, startFrom, fetchItems, actualLoadingHeight, scrollItems.continueFetchingDown, scrollItems.continueFetchingUp, config]);
 
   const loadingComponent =
-    <GetSize callback={({ height }) => setLoadingHeight(height)}>{loading}</GetSize>;
-
-  const items: JSX.Element[] = [];
-  for (let i = 0; i < itemsLength; i++) items[i] = renderItem(i);
+    <GetSize callback={({ height }) => setActualLoadingHeight(height)}>{loading}</GetSize>;
 
   useEffect(() => {
-    resetCb && resetCb(() => {
-      refs.itemsCount = 0
-      refs.prevScrollHeight = 0
-      refs.isSearching = false
-      refs.haveScroll = false
-      refs.isAtTop = !up ? true : false
-      refs.isAtBottom = up ? true : false
-    })
-  }, []);
+    if (!refs.infiniteScrollRef) return;
+    const { scrollHeight, clientHeight } = refs.infiniteScrollRef
 
-  useEffect(() => {
-    if(refs.isAtBottom && refs.infiniteScrollRef) {
-      refs.infiniteScrollRef.scrollTop = 2000000000000000
-    } 
-  }, [items])
+    return () => {
+      if (!refs.infiniteScrollRef) return;
+      const { scrollTop } = refs.infiniteScrollRef
+      const beforeHeight = scrollItems.continueFetchingUp ? actualLoadingHeight : 0
+      const afterHeight = scrollItems.continueFetchingDown ? actualLoadingHeight : 0
+
+      const isAtBottom = (refs.lastScrolls[scrollItemsKey] || scrollTop) >= (scrollHeight - clientHeight)
+
+      if (startFrom === DirectionRequest.UP && (!hasScroll() || isAtBottom)) {
+        refs.infiniteScrollRef.scrollTop = refs.infiniteScrollRef.scrollHeight
+        return;
+      }
+
+      if (refs.lastItemId && ((scrollTop >= 0 && scrollTop <= beforeHeight) || (scrollTop >= scrollHeight - clientHeight - (afterHeight)))) {
+        document.getElementById(refs.lastItemId)?.scrollIntoView({
+          block: "center",      // Puedes usar 'start', 'center', 'end', o 'nearest'
+          inline: 'nearest'
+        })
+      }
+
+      refs.lastItemId = ""
+    }
+  }, [items, actualLoadingHeight, scrollItems, hasScroll, scrollItemsKey])
 
   return (
     <div
       id={id}
-      ref={(el) => { refs.infiniteScrollRef = el; ref && ref(el) }}
-      onScroll={handleScroll}
+      onLoad={(e) => {
+        const imgElement = e.target as HTMLImageElement
+        if(!refs.infiniteScrollRef || imgElement.tagName !== "IMG") return;
+
+        refs.infiniteScrollRef.scrollTop += imgElement.height
+      }}
+      ref={(el) => { refs.infiniteScrollRef = el; giveRef && giveRef(el) }}
       className={className}
-      style={size}
+      onScroll={(e) => {
+        if (!items.length) return;
+        if (refs.functionId) clearTimeout(refs.functionId);
+
+        refs.functionId = setTimeout(() => handleScroll(e), refs.timeout);
+      }}
     >
-      {hasMore && up && loadingComponent}
-      {items}
-      {hasMore && !up && loadingComponent}
+      {scrollItems.continueFetchingUp && loadingComponent}
+      {items.map(renderItem)}
+      {scrollItems.continueFetchingDown && loadingComponent}
     </div>
   )
 }

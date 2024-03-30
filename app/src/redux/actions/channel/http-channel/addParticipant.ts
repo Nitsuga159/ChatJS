@@ -26,7 +26,7 @@ export const addParticipantToChannelReducer = (
   action: PayloadAction<ResponseAddParticipantToChannel>
 ) => {
   const { channelId, user } = action.payload;
-  const { channelDetail } = state.channel;
+  const { channelsDetail: channelDetail } = state;
   if (channelDetail?._id === channelId)
     channelDetail.participants = [...channelDetail.participants, user];
 };
@@ -35,8 +35,8 @@ export const addChannelToParticipantReducer = (
   state: InitialStateChannels,
   action: PayloadAction<SimpleChannel>
 ) => {
-  const { channels } = state.channel;
-  state.channel.channels = [...channels, action.payload];
+  const { channelsTabs: channels } = state;
+  state.channelsTabs = [...channels, action.payload];
 };
 
 export default addParticipant;

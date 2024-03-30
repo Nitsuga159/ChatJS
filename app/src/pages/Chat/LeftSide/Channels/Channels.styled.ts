@@ -47,7 +47,7 @@ export const ItemsContainer = styled.div`
   background-color: ${COLORS.BLACK};
 `;
 
-export const ChannelsItems = styled(InfiniteScroll)`
+export const InfiniteScrollChannels = styled(InfiniteScroll)`
   width: 100%;
   height: 100%;
   overflow-x: hidden;

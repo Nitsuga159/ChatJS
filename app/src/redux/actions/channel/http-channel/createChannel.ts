@@ -26,11 +26,10 @@ export const createChannelReducer = (
   action: PayloadAction<ChannelDetail>
 ) => {
   const channel = action.payload;
-  const channelState = state.channel;
 
   const { _id, name, photo } = channel;
 
-  channelState.channels = [{ _id, name, photo }, ...channelState.channels];
+  state.channelsTabs = [{ _id, name, photo }, ...state.channelsTabs];
 };
 
 export default createChannel;

@@ -14,11 +14,16 @@ export const Menu = styled.div<Omit<MenuSettingsType, "items">>`
   animation: show-context-menu 0.2s ease forwards;
   background-color: ${COLORS.BLACK};
   z-index: ${Z_INDEX._99};
+  box-shadow: 0px 0px 5px ${COLORS.BLACK};
   @keyframes show-context-menu {
     0% {
       opacity: 0;
       transform: scale(0);
     }
+    80% {
+      transform: scale(1.02);
+    }
+
     100% {
       opacity: 1;
       transform: scale(1);
@@ -30,7 +35,8 @@ export const MenuItem = styled.div`
   ${PRE_VALUES.FLEX}
   justify-content: space-between;
   text-align: left;
-  padding: 0.1rem 0.4rem;
+  font-size: 14px;
+  padding: 0.1rem 0.2rem;
   cursor: pointer;
   border-radius: 5px;
   &:hover {

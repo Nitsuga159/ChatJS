@@ -1,47 +1,46 @@
 import { failureNotification } from "@/helpers/notify";
-import { channelActions, channelFetchs } from "@/redux/actions/channel";
-import { getChatChannelsState, getChannelState } from "@/redux/slices/channel";
+import { channelFetchs } from "@/redux/actions/channel";
+import { getChannelState } from "@/redux/slices/channel";
 import { getUserState } from "@/redux/slices/user";
-import { AppDispatch } from "@/redux/store";
-import { DefaultResponse } from "@/types/const.type";
-import { useCallback, useEffect, useState } from "react";
-import { useDispatch, useSelector } from "react-redux";
+import { useCallback } from "react";
+import { useSelector } from "react-redux";
 import Messages from "..";
 import setCloudinaryImages from "@/helpers/setCloudinaryImages";
-import { v4 as uuidV4 } from "uuid";
 import { RequestAddChannelMessage } from "@/redux/actions/channel/http-messages/type";
-import { IMessagesToSend } from "@/redux/slices/channel/type";
-import { MessageStatus } from "@/types/chat.type";
+import { DirectionRequest, TimeRequest } from "@/redux/actions/channel/type";
 
 export default function ChannelMessages({ chatId }: { chatId: string; }) {
-  const dispatch: AppDispatch = useDispatch();
-  const { chats } = useSelector(getChatChannelsState);
-  const { channelDetail } = useSelector(getChannelState);
-  const { accessToken, _id, photo, color, username } = useSelector(getUserState).user!;
-  const chat = chats[chatId] || { continue: true, lastId: null, messages: [] };
+  const { channelsDetail, currentChannelId } = useSelector(getChannelState);
+  const { accessToken } = useSelector(getUserState).user!;
 
-  const getMessages = useCallback(async () => {
-    if (!channelDetail || !chatId) return;
-
-    const { _id } = channelDetail
-    const { lastId } = chat
+  const getMessages = useCallback(async (time: TimeRequest, to: DirectionRequest, lastId: string) => {
+    if (!channelsDetail || !chatId) return;
 
     try {
-      const { results } =
-        (await channelFetchs.getMessages({ channelId: _id, chatId: chatId, lastId, accessToken, }));
+      const { results } = await channelFetchs.getMessages({
+        channelId: channelsDetail[currentChannelId!]._id,
+        query: {
+          lastId,
+          chatId,
+          to,
+          time
+        },
+        accessToken: accessToken
+      })
 
-      dispatch(channelActions.getMessages({ ...results, chatId }));
+      return { continue: results.continue, newItems: results.messages }
     } catch (e: any) {
+      console.log("error channel messages get", e)
       failureNotification(e.response.data.message);
     }
-  }, [chat, channelDetail, chatId]);
+  }, [channelsDetail, currentChannelId, chatId]);
 
   const setMessage = async (value: string, files: File[]) => {
     if (!value.length && !files.length) return;
 
     let newMessage: RequestAddChannelMessage = {
       accessToken,
-      channelId: channelDetail!._id,
+      channelId: channelsDetail[currentChannelId!]!._id,
       chatId,
       message: { value: value ? value : '' },
     };
@@ -57,44 +56,22 @@ export default function ChannelMessages({ chatId }: { chatId: string; }) {
 
       await channelFetchs.addMessage(updatedMessage);
     } catch (e: any) {
-      dispatch(channelActions.errorMessageToSend(newMessage.clientId))
-    }
-  }
-
-  const resendMessage = async (messageToResend: IMessagesToSend) => {
-    const { status, ...message } = messageToResend;
-    dispatch(channelActions.resendMessage(message.clientId));
-
-    try {
-      await channelFetchs.addMessage(message);
-
-    } catch (e: any) {
-      dispatch(channelActions.errorMessageToSend(message.clientId))
+      console.log("Error trying to set message", e)
     }
   }
 
   const deleteMessages = async (ids: string[]) => {
-    try {
-      await channelFetchs.deleteMessages({ accessToken, channelId: channelDetail!._id, chatId, ids });
+    if(!currentChannelId || !chatId) return;
 
-    } catch (e: any) {
-      console.log("error al eliminar mensajes: ", e)
-    }
+    await channelFetchs.deleteMessages({ chatId, channelId: currentChannelId, ids, accessToken })
   };
-
-  useEffect(() => {
-    return () => {
-      dispatch(channelActions.checkLimitMessages(chatId));
-    }
-  }, []);
 
   return (
     <Messages
-      chat={chat}
       getMessages={getMessages}
       setMessage={setMessage}
       deleteMessages={deleteMessages}
-      resendMessage={resendMessage}
+      scrollItemsKey={chatId}
     />
   )
 }

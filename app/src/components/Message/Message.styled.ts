@@ -5,13 +5,19 @@ import { EAnimationStatus } from "../CSSAnimation/type";
 import { FaTrash } from "react-icons/fa";
 import { MdCancel } from "react-icons/md";
 import { MessageStatus } from "@/types/chat.type";
+import Image from "../Image";
 
 export const Row = styled.div<{
+  isToDelete: boolean;
   isHeader?: boolean;
-  isToDelete?: boolean;
   deleteMode?: boolean;
   status?: MessageStatus;
 }>`
+  ${({ isToDelete }) => ({
+    opacity: isToDelete ? 0.4 : 1,
+    cursor: isToDelete ? "pointer" : "default",
+    backgroundColor: isToDelete ? COLORS.GRAY : "",
+  })}
   position: relative;
   display: flex;
   justify-content: center;
@@ -23,9 +29,6 @@ export const Row = styled.div<{
   &:hover {
     background-color: ${COLORS.GRAY};
   }
-  background-color: ${({ isToDelete }) => (isToDelete ? COLORS.GRAY : "")};
-  opacity: ${({ isToDelete }) => (isToDelete ? 0.4 : 1)};
-  cursor: ${({ deleteMode }) => (deleteMode ? "pointer" : "default")};
   ${({ status }) =>
     status === MessageStatus.WAITING
       ? { opacity: 0.6 }
@@ -82,7 +85,7 @@ export const Date = styled.span<{ isHeader: boolean; isIn: boolean }>`
   color: ${({ isIn }) => (isIn ? COLORS.SHINE_GRAY : "transparent")};
 `;
 
-export const MessageImage = styled.img`
+export const MessageImage = styled(Image)`
   border-radius: 5px;
   text-align: left;
   width: auto;
@@ -105,14 +108,14 @@ const dissaper = keyframes`
   to { transform: scale(.5); opacity: 0 }
 `;
 
-export const MessageImageComplete = styled.img<{ status: EAnimationStatus }>`
+export const MessageImageComplete = styled(Image)<{ status: EAnimationStatus }>`
   width: auto;
   height: auto;
   max-height: 50%;
   max-width: 80%;
   animation: ${({ status }) =>
       status === EAnimationStatus.IN ? show : dissaper}
-    0.3s ease forwards;
+    0.4s ease forwards;
 `;
 
 export const RemoveMessagesIcon = styled(FaTrash)`

@@ -5,7 +5,7 @@ import { DefaultResponse } from "@/types/const.type";
 import { useCallback } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import Messages from "..";
-import { getFriendChatState } from "@/redux/slices/friend";
+import { getFriendState } from "@/redux/slices/friend";
 import { friendActions, friendFetchs } from "@/redux/actions/friend";
 import { v4 as uuidV4 } from "uuid";
 import { RequestAddFriendMessage } from "@/redux/actions/friend/type";
@@ -13,7 +13,7 @@ import setCloudinaryImages from "@/helpers/setCloudinaryImages";
 
 export default function FriendMessages({ chatId }: { chatId: string; }) {
   const dispatch: AppDispatch = useDispatch();
-  const { chats } = useSelector(getFriendChatState);
+  const { chats } = useSelector(getFriendState);
   const accessToken = useSelector(getUserState).user?.accessToken!;
 
   const chat = chats[chatId!] || { continue: true, lastId: null, messages: [] };

@@ -1,21 +1,26 @@
 import { MessageStatus } from "@/types/chat.type";
 
-export interface NormalMessageProps {
-  username?: string;
-  value: string;
-  color?: string;
-  messagePhotos: string[];
-  userPhoto?: string;
-  createdAt: Date;
-  refresh: () => void;
-  status?: MessageStatus;
+export enum MessageType {
+  HEADER,
+  NORMAL
 }
 
-export interface MessageProps extends NormalMessageProps {
+export interface BasicMessageProps {
+  type: MessageType
+  username?: string
+  value: string
+  color?: string
+  messagePhotos: string[]
+  userPhoto?: string
+  createdAt: Date
+  isToDelete: boolean
+}
+
+export interface MessageProps extends BasicMessageProps {
   id: string;
   senderId: string;
-  isToDelete: boolean;
-  haveMessagesToDelete: boolean;
+  addToDelete: (id: string) => void,
+  removeToDelete: (id: string) => void,
 }
 
 export interface HeaderMessageProps extends MessageProps {

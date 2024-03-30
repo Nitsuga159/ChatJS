@@ -1,27 +1,35 @@
-import { StartRequest, TimeRequest } from "@/redux/actions/channel/type";
+import { DirectionRequest, TimeRequest } from "@/redux/actions/channel/type";
 
 export interface InfiniteScrollProps {
   id?: string;
-  size?: { height: number; width: number };
-  resetCb?: (cb: () => void) => void;
-  itemsLength: number;
-  renderItem: (index: number) => JSX.Element;
-  fetchItems: (time?: TimeRequest) => Promise<void>;
+  scrollItemsKey: string
   loading: JSX.Element;
-  hasMore: boolean;
   margin?: number;
   className?: string;
-  up?: true;
-  ref?: (ref: HTMLElement | null) => void;
+  startFrom: DirectionRequest
+  maxItems?: number
+  maxVirtualItems?: number
+  giveRef?: (ref: HTMLElement | null) => void;
+  renderItem: (data: any, index: number, context: any[]) => JSX.Element;
+  fetchItems: (time: TimeRequest, to: DirectionRequest, lastId: string) => Promise<{ continue: boolean, newItems: any[] } | undefined>;
 }
 
 export interface IRefsInfiniteScroll {
   infiniteScrollRef: HTMLDivElement | null;
-  prevScrollHeight: number;
-  isSearching: boolean;
-  isAtBottom: boolean;
-  isAtTop: boolean;
-  itemsCount: number;
-  haveScroll: boolean;
-  time: TimeRequest,
+  lastScrolls: { [key: string]: number };
+  scrollItemsKey?: string
+  lastItemId?: string;
+  timeout: number;
+  functionId: NodeJS.Timeout | null;
 }
+
+export interface SettingsScroll {
+  isFetching?: boolean
+  startFrom?: DirectionRequest
+  directionTime?: TimeRequest
+  isAtTop?: boolean
+  isAtBottom?: boolean
+  continueBefore?: boolean
+  continueAfter?: boolean
+  scrollTop?: number
+} 

@@ -3,9 +3,6 @@ export enum MessageStatus {
   FAILURE,
 }
 
-export const haveMessageStatus = (status: MessageStatus | undefined): boolean =>
-  status === MessageStatus.FAILURE || status === MessageStatus.WAITING;
-
 export interface Message {
   _id?: string;
   createdAt: string;

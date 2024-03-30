@@ -14,7 +14,7 @@ export const FriendTabsContainer = styled(InfiniteScroll)`
 export const FriendTabContainer = styled.div`
   display: flex;
   align-items: center;
-  padding: 0.3rem;
+  padding: 0.5rem;
   border-radius: 5px;
   cursor: pointer;
   &:hover {

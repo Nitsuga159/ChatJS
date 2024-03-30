@@ -9,7 +9,6 @@ export default (
   action: PayloadAction<SimpleChannel>
 ) => {
   const channel = action.payload;
-  const channelState = state.channel;
 
-  channelState.channels = [channel, ...channelState.channels];
+  state.channelsTabs = [channel, ...state.channelsTabs];
 };

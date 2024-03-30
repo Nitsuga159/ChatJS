@@ -31,7 +31,8 @@ export const addChatReducer = (
   action: PayloadAction<ResponseAddChannelChat>
 ) => {
   const { channelId, chat } = action.payload;
-  const { channelDetail } = state.channel;
+  const { channelsDetail: channelDetail } = state;
+  
   if (channelDetail?._id === channelId)
     channelDetail.chats = [...channelDetail.chats, chat];
 };

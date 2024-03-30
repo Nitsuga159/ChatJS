@@ -1,3 +1,4 @@
+import { SettingsScroll } from "@/components/InfiniteScroll/type";
 import { RequestAddChannelMessage } from "@/redux/actions/channel/http-messages/type";
 import { TimeRequest } from "@/redux/actions/channel/type";
 import { Message } from "@/types/chat.type";
@@ -32,12 +33,6 @@ export interface ChannelMessage extends Message {
   channelId: string;
 }
 
-export interface ChannelChat {
-  continue: boolean;
-  lastId: string | null;
-  messages: ChannelMessage[];
-}
-
 export enum EMessagesToSendStatus {
   WAITING,
   ERROR,
@@ -48,16 +43,8 @@ export interface IMessagesToSend extends RequestAddChannelMessage {
 }
 
 export interface InitialStateChannels {
-  channel: {
-    channels: SimpleChannel[];
-    channelDetail: ChannelDetail | null;
-    continue: boolean;
-    lastId: string | null;
-  };
-  chat: {
-    currentChatId: string | null;
-    chats: {
-      [key: string]: ChannelChat;
-    };
-  };
+  channelsTabs: SimpleChannel[];
+  channelsDetail: { [key: string]: ChannelDetail };
+  currentChannelId: string | null;
+  currentChatId: string | null;
 }

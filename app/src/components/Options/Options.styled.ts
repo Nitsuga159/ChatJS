@@ -5,7 +5,7 @@ import { COLORS, PRE_VALUES, Z_INDEX } from "@/styles";
 export const OptionsContainer = styled.div<{ coords: CoordsType }>`
   ${({ coords }) => coords}
   ${PRE_VALUES.FLEX}
-  padding: 0.4rem 0.7rem;
+  padding: 0.1rem;
   position: absolute;
   gap: 1rem;
   background-color: ${COLORS.DARK};
@@ -13,4 +13,6 @@ export const OptionsContainer = styled.div<{ coords: CoordsType }>`
   z-index: ${Z_INDEX._96};
 `;
 
-export const ItemOption = styled.span``;
+export const ItemOption = styled.span`
+  cursor: pointer;
+`;

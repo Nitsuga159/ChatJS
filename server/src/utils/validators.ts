@@ -8,13 +8,13 @@ export class QueryParameters {
   @Transform(transformObjectId)
   lastId: Types.ObjectId
 
-  @IsOptional()
   @IsString()
-  @Matches(/before|after/)
+  @IsOptional()
+  @Matches(/^before$|^after$/)
   time: 'before' | 'after'
 
-  @IsOptional()
   @IsString()
-  @Matches(/first-one|last-one/)
-  start: 'first-one' | 'last-one'
+  @IsOptional()
+  @Matches(/^down$|^up$/)
+  to: 'down' | 'up'
 }

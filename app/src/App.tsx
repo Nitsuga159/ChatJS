@@ -16,8 +16,8 @@ import { COLORS } from './styles';
 import { userActions, userFetchs } from './redux/actions/user';
 import { failureNotification } from './helpers/notify';
 
-
 axios.defaults.baseURL = ENVS.BACKEND_URL || "http://localhost:3070";
+
 
 function App() {
   const { user } = useSelector(getUserState);
@@ -53,24 +53,6 @@ function App() {
     }
   }, [user, loadingUser]);
 
-  async function initVideo() {
-    const response = await ipcRenderer.invoke("user-devices");
-
-    const stream = await navigator.mediaDevices.getUserMedia({
-      audio: false,
-      video: {
-        mandatory: {
-          chromeMediaSource: 'desktop',
-          chromeMediaSourceId: response[1].id,
-          minWidth: 1280,
-          maxWidth: 1280,
-          minHeight: 720,
-          maxHeight: 720
-        }
-      }
-    } as any)
-  }
-
   return (
     <>
       <TitleBar />
@@ -88,3 +70,24 @@ function App() {
 }
 
 export default App
+
+
+
+/** @todo USE THIS FUNCTION FOR SHARE SCREEN IN A COOMING FEATURE... */
+async function initVideo() {
+  const response = await ipcRenderer.invoke("user-devices");
+
+  const stream = await navigator.mediaDevices.getUserMedia({
+    audio: false,
+    video: {
+      mandatory: {
+        chromeMediaSource: 'desktop',
+        chromeMediaSourceId: response[1].id,
+        minWidth: 1280,
+        maxWidth: 1280,
+        minHeight: 720,
+        maxHeight: 720
+      }
+    }
+  } as any)
+}

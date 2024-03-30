@@ -5,5 +5,5 @@ export const setCurrentChatId = (
   state: InitialStateFriends,
   action: PayloadAction<string | null>
 ) => {
-  state.chat.currentChatId = action.payload;
+  state.currentChatId = action.payload;
 };

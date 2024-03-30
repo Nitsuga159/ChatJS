@@ -5,5 +5,5 @@ export default (
   state: InitialStateChannels,
   action: PayloadAction<string | null>
 ) => {
-  state.chat.currentChatId = action.payload;
+  state.currentChatId = action.payload;
 };

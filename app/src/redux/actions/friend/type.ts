@@ -1,4 +1,5 @@
 import { Friend, FriendMessage } from "@/redux/slices/friend/type";
+import { DirectionRequest, TimeRequest } from "../channel/type";
 
 interface DefaultRequestFriend {
   accessToken: string;
@@ -9,7 +10,7 @@ interface DefaultRequestFriend {
 
 export interface RequestGetFriends
   extends Omit<DefaultRequestFriend, "friendId"> {
-  lastId: string | null;
+  query: { lastId: string | null, time?: TimeRequest, to: DirectionRequest }
 }
 
 export interface ResponseGetFriends {

@@ -1,0 +1,1 @@
+export default (seconds: number) => new Promise((r) => setTimeout(() => r(1), seconds * 1000));

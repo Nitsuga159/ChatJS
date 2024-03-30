@@ -5,6 +5,9 @@ import styled from 'styled-components';
 import FriendTabs from './FriendTabs';
 import { COLORS } from '@/styles';
 import ProfileNavBar from './ProfileNavBar';
+import { useState } from 'react';
+import InfiniteScroll from '@/components/InfiniteScroll';
+import { DirectionRequest } from '@/redux/actions/channel/type';
 
 const Container = styled.div`
   display: grid;
@@ -17,7 +20,6 @@ const Container = styled.div`
 `
 
 export default function LeftSide({ chatMode }: { chatMode: ChatMode }) {
-
   return (
     <Container>
       <Channels />

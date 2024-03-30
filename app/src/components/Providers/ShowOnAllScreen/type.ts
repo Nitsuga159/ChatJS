@@ -1,7 +1,4 @@
-export interface ShowOnAllScreenType {
-  showOnAllScreen: (component: (isOpen: boolean) => JSX.Element) => void;
-  isOpen: boolean;
-}
+export type ShowOnAllScreenType = (component: (isOpen: boolean) => JSX.Element) => void
 
 export interface SettingsType {
   open: boolean;

@@ -19,8 +19,7 @@ export const TitleContainer = styled.div`
   gap: 0.5rem;
   font-size: 1.2rem;
   text-align: left;
-  background-color: ${COLORS.DARK};
-  box-shadow: 0 5px 7px ${COLORS.BLACK};
+  background-color: ${COLORS.BLACK};
   z-index: ${Z_INDEX._99};
 `;
 
@@ -32,7 +31,7 @@ export const TitleParagraph = styled.p`
 
 export const MessagesContainer = styled.div`
   display: grid;
-  grid-template-rows: 45px calc(100% - 45px);
+  grid-template-rows: 50px calc(100% - 50px);
 `;
 
 export const NoChatSelectedContainer = styled.div`

@@ -22,6 +22,7 @@ export interface FriendChat {
 }
 
 export interface InitialStateFriends {
-  friend: { friends: Friend[]; lastId: string | null; continue: boolean };
-  chat: { chats: { [key: string]: FriendChat }; currentChatId: string | null };
+  friends: Friend[];
+  chats: { [key: string]: FriendChat }; 
+  currentChatId: string | null
 }

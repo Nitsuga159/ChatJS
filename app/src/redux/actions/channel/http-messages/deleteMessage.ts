@@ -24,18 +24,4 @@ const deleteMessages = async ({
   return "Messages deleted";
 };
 
-export const deleteMessagesReducer = (
-  state: InitialStateChannels,
-  action: PayloadAction<ResponseDeleteChannelMessage>
-) => {
-  const { chatId, ids } = action.payload;
-  console.log(chatId, ids);
-  const chat = state.chat.chats[chatId];
-
-  if (chat) {
-    const setIds = new Set(ids);
-    chat.messages = chat.messages.filter(({ _id }) => !setIds.has(_id));
-  }
-};
-
 export default deleteMessages;

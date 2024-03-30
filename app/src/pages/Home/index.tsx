@@ -41,6 +41,13 @@ export default function Home() {
   useEffect(() => {
     if (!socket) return;
 
+    //CHANNEL_MESSAGE
+    const addChannelMessage = (message: MessageChannel) => {
+      console.log(message)
+    }
+
+    socket.on(WS_CHANNEL.NEW_CHANNEL_MESSAGE, addChannelMessage);
+
     //CHANNELS
     const addChannel = (channel: SimpleChannel) => {
       dispatch(channelActions.addChannel(channel));

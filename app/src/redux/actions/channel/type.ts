@@ -12,14 +12,14 @@ export enum TimeRequest {
   AFTER = 'after'
 }
 
-export enum StartRequest {
-  LAST_ONE = 'last-one',
-  FIRST_ONE = 'first-one'
+export enum DirectionRequest {
+  DOWN = 'down',
+  UP = 'up'
 }
 
 
 export interface RequestGetChannels {
-  query: { lastId: string | null, time?: TimeRequest, start?: StartRequest }
+  query: { lastId: string | null, time?: TimeRequest, to: DirectionRequest }
   accessToken: string;
 }
 

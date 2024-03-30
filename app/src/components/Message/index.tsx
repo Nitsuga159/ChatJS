@@ -1,5 +1,5 @@
 import * as S from './Message.styled';
-import { HeaderMessageProps, MessageProps, NormalMessageProps, SimpleMessageProps } from './type';
+import { HeaderMessageProps, MessageProps, BasicMessageProps, SimpleMessageProps, MessageType } from './type';
 import { useContext, useState, useCallback, useMemo, useEffect } from 'react';
 import { copyImageToClipboard } from 'copy-image-clipboard';
 import { ContextMenuContext } from '../Providers/ContextMenu';
@@ -11,15 +11,12 @@ import { ShowOnAllScreenContext } from '../Providers/ShowOnAllScreen';
 import CSSAnimation from '../CSSAnimation';
 import Options from '../Options';
 import { useDispatch, useSelector } from 'react-redux';
-import { getChatMode, getMessagesToDelete } from '@/redux/slices/general';
-import { AppDispatch } from '@/redux/store';
-import { generalActions } from '@/redux/actions/general';
+import { getChatMode } from '@/redux/slices/general';
 import { DefaultButton } from '@/index.styled';
 import { COLORS } from '@/styles';
 import { getUserState } from '@/redux/slices/user';
 import { getChannelState } from '@/redux/slices/channel';
 import { ChatMode } from '@/redux/slices/general/type';
-import { haveMessageStatus } from '@/types/chat.type';
 import React from 'react';
 
 const makeItemsMenu = (image: HTMLImageElement): MenuItemType[] =>
@@ -32,26 +29,25 @@ const makeItemsMenu = (image: HTMLImageElement): MenuItemType[] =>
     {
       icon: <FiSave />,
       name: "Save image",
-      onSelect: () => downloadFile(image.src, "hola.jpg")
+      onSelect: () => downloadFile(image.src, new Date().toISOString() + ".jpeg")
     }
   ]
 
-const Message = (
-  { id, isToDelete, haveMessagesToDelete, senderId, value, username, color, createdAt, userPhoto, messagePhotos, refresh, status }:
+const Message = React.memo((
+  { id, type, isToDelete, addToDelete, removeToDelete, senderId, value, username, color, createdAt, userPhoto, messagePhotos }:
     MessageProps
 ) => {
-  const dispatch: AppDispatch = useDispatch();
   const { _id } = useSelector(getUserState).user!;
   const chatMode = useSelector(getChatMode);
-  const { channelDetail } = useSelector(getChannelState);
-  const { showOnAllScreen } = useContext(ShowOnAllScreenContext);
+  const { channelsDetail: channelDetail, currentChatId } = useSelector(getChannelState);
+  const showOnAllScreen = useContext(ShowOnAllScreenContext);
   const handleOpenContextMenu = useContext(ContextMenuContext);
-  const isHeader = typeof username === 'string';
-  const canDelete = _id === senderId || (chatMode === ChatMode.CHANNEL_CHAT && channelDetail?.admin === _id)
-  const [isIn, setIsIn] = useState<boolean>(false);
+  const isHeader = type === MessageType.HEADER;
+  const canDelete = _id === senderId || (chatMode === ChatMode.CHANNEL_CHAT && channelDetail[currentChatId!]?.admin === _id)
+  const [isInside, setIsInside] = useState<boolean>(false);
 
   const currentDate =
-    <S.Date isHeader={isHeader} isIn={isIn}>
+    <S.Date isHeader={isHeader} isIn={isInside}>
       {createdAt.toLocaleTimeString().slice(0, -3)}
     </S.Date>;
 
@@ -62,40 +58,36 @@ const Message = (
         <S.UserPhoto src={userPhoto} /> :
         <S.DefaultPhoto color={color!} />;
 
-  const handleClickMessageImage = useCallback((photoURL: string) => showOnAllScreen(
+  const handleClickMessageImage = (photoURL: string) => showOnAllScreen(
     (isOpen: boolean) =>
       <CSSAnimation open={isOpen} timeout={300}>
         {
-          (status) => <S.MessageImageComplete status={status} src={photoURL} />
+          (status) => <S.MessageImageComplete loadWidth={200} loadHeight={200} status={status} src={photoURL} />
         }
       </CSSAnimation>
-  ), []);
+  );
 
-  const checkAddMessageToDelete = useCallback(() => {
-    if (!canDelete) return;
+  const addMessageToDelete = useCallback(() => {
+    if (!canDelete || isToDelete) return;
 
-    if (isToDelete) return dispatch(generalActions.removeMessageToDelete(id));
-
-    dispatch(generalActions.addMessageToDelete(id));
+    addToDelete(id)
   }, [isToDelete, canDelete, id]);
 
-  const rowProps = haveMessageStatus(status) ? { status } : {
-    onClick: haveMessagesToDelete ? checkAddMessageToDelete : undefined,
-    onMouseEnter: () => setIsIn(true),
-    onMouseLeave: () => setIsIn(false),
-    isHeader,
-    isToDelete,
-    deleteMode: haveMessagesToDelete
-  }
-
   return (
-    <S.Row {...rowProps}>
+    <S.Row 
+      id={id} 
+      onClick={isToDelete ? () => removeToDelete(id) : undefined} 
+      isToDelete={isToDelete} 
+      isHeader={isHeader} 
+      onMouseEnter={() => setIsInside(true)} 
+      onMouseLeave={() => setIsInside(false)}
+    >
       {
-        !haveMessageStatus(status) && canDelete && isIn && !haveMessagesToDelete &&
+        !isToDelete && canDelete && isInside &&
         <Options
-          coords={{ top: -30, right: 6 }}
+          coords={{ top: -20, right: 6 }}
           itemsOption={
-            [{ show: <DefaultButton><S.RemoveMessagesIcon style={{ color: COLORS.FOLLY }} /></DefaultButton>, onSelect: checkAddMessageToDelete }]
+            [{ show: <DefaultButton><S.RemoveMessagesIcon style={{ color: COLORS.FOLLY }} /></DefaultButton>, onSelect: addMessageToDelete }]
           }
         />
       }
@@ -106,10 +98,11 @@ const Message = (
           messagePhotos.map((photoURL, index) =>
             <S.MessageImage
               key={index}
+              loadWidth={250}
+              loadHeight={50}
               src={photoURL}
-              onLoad={() => refresh()}
-              onClick={!haveMessageStatus(status) ? haveMessagesToDelete ? undefined : () => handleClickMessageImage(photoURL) : undefined}
-              onContextMenu={!haveMessageStatus(status) ? (e) => handleOpenContextMenu(e, makeItemsMenu(e.target as HTMLImageElement)) : undefined}
+              onClick={isToDelete ? undefined : () => handleClickMessageImage(photoURL)}
+              onContextMenu={isToDelete ? undefined : (e) => handleOpenContextMenu(e, makeItemsMenu(e.target as HTMLImageElement))}
             />
           )
         }
@@ -117,21 +110,6 @@ const Message = (
       </S.MessageContainer>
     </S.Row>
   );
-};
+});
 
-export const HeaderMessage = React.memo((props: HeaderMessageProps) => {
-  return (
-    <Message
-      {...props}
-    />
-  );
-})
-
-export const SimpleMessage = React.memo((props: SimpleMessageProps) => {
-  return (
-    <Message
-      {...props}
-    />
-  );
-})
-
+export default Message

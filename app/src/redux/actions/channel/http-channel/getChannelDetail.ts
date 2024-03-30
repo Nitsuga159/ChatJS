@@ -25,7 +25,8 @@ export const getChannelDetailReducer = (
 ) => {
   console.log("channel detail", action.payload)
   
-  state.channel.channelDetail = action.payload;
+  state.channelsDetail[action.payload._id] = action.payload;
+  state.currentChannelId = action.payload._id
 };
 
 export default getChannelDetail;

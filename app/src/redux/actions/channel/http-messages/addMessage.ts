@@ -20,36 +20,4 @@ const addMessage = async ({
   );
 };
 
-export const addMessageReducer = (
-  state: InitialStateChannels,
-  action: PayloadAction<ChannelMessage>
-) => {
-  const message = action.payload;
-  const { chatId } = message
-  const { channelDetail } = state.channel;
-  const { chats } = state.chat;
-
-  console.log("message!", action.payload)
-
-  if (chats[chatId]) {
-    let messages = [...chats[chatId].messages, message];
-
-    chats[chatId] = {
-      ...chats[chatId],
-      messages,
-    };
-  }
-
-  // if (channelDetail?._id === channelId) {
-  //   const indexChat = channelDetail.chats.findIndex(
-  //     ({ _id }) => chatId === _id
-  //   );
-  //   const chat = channelDetail.chats[indexChat];
-  //   channelDetail.chats[indexChat] = {
-  //     ...chat,
-  //     messagesCount: chat.messagesCount + 1,
-  //   };
-  // }
-};
-
 export default addMessage;

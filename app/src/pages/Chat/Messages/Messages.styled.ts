@@ -11,7 +11,7 @@ export const ChatContainer = styled.div`
   display: flex;
   flex-direction: column;
   padding: 1rem;
-  padding-top: 0;
+  padding-top: 1rem;
   background-color: ${COLORS.BROWN_GRAY};
   *::-webkit-scrollbar {
     height: 4px;
@@ -24,7 +24,7 @@ export const ChatContainer = styled.div`
   }
 `;
 
-export const ChatMessages = styled(InfiniteScroll)`
+export const MessagesInifiniteScroll = styled(InfiniteScroll)`
   height: 100%;
   overflow-y: auto;
 `;
@@ -72,7 +72,8 @@ export const NavBarDeleteMessages = styled.div`
   padding: 1rem;
   margin: 1rem 0;
   height: 40px;
-  background-color: ${COLORS.FOLLY};
+  background-color: ${COLORS.MIDDLE_BLACK};
+  box-shadow: 0px 0px 10px ${COLORS.BLACK};
   border-radius: 6px;
   z-index: ${Z_INDEX._97};
   animation: ${animationNavBar} 0.6s ease forwards;

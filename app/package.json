@@ -41,6 +41,9 @@
     "uuid": "^9.0.0"
   },
   "devDependencies": {
+    "@babel/cli": "^7.23.4",
+    "@babel/core": "^7.23.7",
+    "@babel/preset-env": "^7.23.8",
     "@playwright/test": "^1.31.0",
     "@types/axios": "^0.14.0",
     "@types/react": "^18.0.28",

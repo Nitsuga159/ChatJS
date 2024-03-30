@@ -3,7 +3,7 @@ import { IoIosArrowForward, IoIosArrowDown } from 'react-icons/io/index'
 import s from './GroupChannel.module.css';
 import { AppDispatch } from "@/redux/store";
 import { useDispatch, useSelector } from "react-redux";
-import { getChatChannelsState } from "@/redux/slices/channel";
+import { getChannelState } from "@/redux/slices/channel";
 import { channelActions } from "@/redux/actions/channel";
 import { getGeneralState } from "@/redux/slices/general";
 import { ChatMode } from "@/redux/slices/general/type";
@@ -14,7 +14,7 @@ export default function ChannelItems(
     { title: string, channels: { name: string, _id: string, messagesCount: number }[] }
 ) {
   const dispatch: AppDispatch = useDispatch();
-  const { currentChatId } = useSelector(getChatChannelsState);
+  const { currentChatId } = useSelector(getChannelState);
   const { chatMode } = useSelector(getGeneralState);
 
   const [openGroupChannel, setOpenGroupChannel] = useState<boolean>(true);

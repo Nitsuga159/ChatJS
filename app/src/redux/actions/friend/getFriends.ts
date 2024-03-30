@@ -1,31 +1,27 @@
-import { InitialStateFriends } from "@/redux/slices/friend/type";
+import { Friend, InitialStateFriends } from "@/redux/slices/friend/type";
 import { PayloadAction } from "@reduxjs/toolkit";
 import { RequestGetFriends, ResponseGetFriends } from "./type";
-import axios from "axios";
+import utils from "@/utils";
+import { getFetch } from "@/utils/fetch";
 
 const getFriends = async ({
   accessToken,
-  lastId,
+  query
 }: RequestGetFriends): Promise<{ status: number, results: ResponseGetFriends}> => {
-  const { data } = await axios.get(
-    `/friend${lastId ? `?lastId=${lastId}` : ''}`,
-    {
-      headers: { Authorization: `Bearer ${accessToken}` },
-    }
-  );
-
-  return data;
+  return await getFetch({ 
+    endpoint: '/friend', 
+    query: {
+      ...query
+    },
+    headers: utils.createHeaderToken(accessToken)
+  })
 };
 
 export const getFriendsReducer = (
   state: InitialStateFriends,
-  action: PayloadAction<ResponseGetFriends>
+  action: PayloadAction<Friend[]>
 ) => {
-  const { continue: canContinue, friends } = action.payload;
-
-  state.friend.continue = canContinue;
-  state.friend.lastId = friends[0]?._id;
-  state.friend.friends = [...state.friend.friends, ...friends];
+  state.friends = action.payload;
 };
 
 export default getFriends;

@@ -7,7 +7,6 @@ import {
   LoginRequest,
   ROUNDS_ENCRYPT,
   UserRequest,
-  UserType,
 } from '../../database/user-model/user-model.type';
 import { UserModelService } from 'src/database/user-model/user-model.service';
 import { UserDocument } from 'src/database/user-model/user-model';
@@ -15,7 +14,7 @@ import ENVS from 'src/envs';
 import { Types } from 'mongoose';
 import { Ws } from 'src/ws/ws.gateway';
 import { DefaultHttpException } from 'src/exceptions/DefaultHttpException';
-import filterObject from 'src/utils/filterObject';
+import * as ERRORS from 'src/errors-message.';
 
 const ObjectId = Types.ObjectId;
 
@@ -30,7 +29,7 @@ export class UsersService {
     const createdUser = await this.userModelService.create(user);
     
     if (!createdUser) {
-      throw new DefaultHttpException({ status: HttpStatus.CONFLICT, message: 'Failed to create user' })
+      throw new DefaultHttpException({ status: HttpStatus.CONFLICT, message: ERRORS.UNEXPECTED })
     }
     
     return createdUser;
@@ -42,7 +41,7 @@ export class UsersService {
     const user: any = await this.findByOtherData({ mail: data.mail });
 
     if (!(await compare(data.password, user.password)) && user.habilited) {
-      throw new DefaultHttpException({ status: HttpStatus.BAD_REQUEST, message: 'Invalid User' })
+      throw new DefaultHttpException({ status: HttpStatus.UNAUTHORIZED, message: ERRORS.UNATHORIZED })
     }
 
     const { _id } = user;
@@ -58,7 +57,7 @@ export class UsersService {
     const foundUser = await this.userModelService.findByOtherData(data);
     
     if (!foundUser) {
-      throw new DefaultHttpException({ status: 400, message: 'Invalid credencials' });
+      throw new DefaultHttpException({ status: HttpStatus.UNAUTHORIZED, message: ERRORS.UNATHORIZED });
     }
     
     return foundUser;
@@ -86,7 +85,7 @@ export class UsersService {
 
   async update(id: string | Types.ObjectId, data: any, fields: {} = {}): Promise<UserDocument> {
     if (!Object.values(data).length) {
-      throw new DefaultHttpException({ status: HttpStatus.BAD_REQUEST, message: 'Invalid data' })
+      throw new DefaultHttpException({ status: HttpStatus.BAD_REQUEST, message: ERRORS.REQUEST_DATA })
     }
     
     id = new ObjectId(id.toString());
@@ -105,7 +104,7 @@ export class UsersService {
       const foundedUser = await this.userModelService.findById(_id);
 
     if (!(await compare(password, foundedUser.password))) {
-      throw new DefaultHttpException({ status: HttpStatus.NOT_ACCEPTABLE, message: 'Invalid password' })
+      throw new DefaultHttpException({ status: HttpStatus.BAD_REQUEST, message: ERRORS.REQUEST_DATA })
     }
     
     foundedUser.password = await hash(newPassword, ROUNDS_ENCRYPT);

@@ -11,8 +11,9 @@ import { addFriendReducer } from "@/redux/actions/friend/addFriend";
 import { deleteMessagesReducer } from "@/redux/actions/friend/deleteMessage";
 
 const initialState: InitialStateFriends = {
-  friend: { friends: [], lastId: null, continue: true },
-  chat: { chats: {}, currentChatId: null },
+  friends: [],
+  chats: {}, 
+  currentChatId: null
 };
 
 const friendSlice = createSlice({
@@ -28,13 +29,13 @@ const friendSlice = createSlice({
     deleteMessages: deleteMessagesReducer,
     resetMessageCount: resetMessageCountReducer,
     reset(state) {
-      state.friend = { friends: [], lastId: null, continue: true };
-      state.chat = { chats: {}, currentChatId: null };
+      state.friends = []
+      state.chats = {}
+      state.currentChatId = null
     },
   },
 });
 
 export const { actions, reducer } = friendSlice;
 
-export const getFriendState = (state: RootState) => state.friend.friend;
-export const getFriendChatState = (state: RootState) => state.friend.chat;
+export const getFriendState = (state: RootState) => state.friend;

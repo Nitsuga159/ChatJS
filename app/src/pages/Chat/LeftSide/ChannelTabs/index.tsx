@@ -4,13 +4,13 @@ import ChannelItems from "./ChannelItems/ChannelItems";
 import { getChannelState } from "@/redux/slices/channel";
 
 export default function ChannelTabs() {
-  const { channelDetail } = useSelector(getChannelState);
+  const { channelsDetail: channelDetail, currentChannelId } = useSelector(getChannelState);
 
   return (
     <ChannelTabsContainer>
       <ChannelItems
         title="text channels"
-        channels={channelDetail?.chats || []}
+        channels={channelDetail[currentChannelId!]?.chats || []}
       />
       <ChannelItems
         title="voice channels"

@@ -1,6 +1,7 @@
-import { ReactNode, MouseEvent } from "react";
+import { ReactNode } from "react";
 
 export interface ItemSelectionProps {
+  id?: string
   onClick: () => void;
   name: string;
   children: ReactNode;

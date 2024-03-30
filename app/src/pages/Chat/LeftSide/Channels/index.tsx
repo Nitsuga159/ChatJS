@@ -2,7 +2,7 @@ import * as S from "./Channels.styled";
 import { channelActions, channelFetchs } from "@/redux/actions/channel";
 import { getChannelState } from "@/redux/slices/channel";
 import { getUserState } from "@/redux/slices/user";
-import { useCallback, useContext } from "react";
+import { useCallback, useContext, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { mapChannelItem } from "./maps";
 import { failureNotification } from "@/helpers/notify";
@@ -11,35 +11,36 @@ import { ChatMode } from "@/redux/slices/general/type";
 import { generalActions } from "@/redux/actions/general";
 import ItemSelectionSkeleton from "@/components/Skeletons/ItemSelectionSkeleton";
 import { SocketContext } from "@/components/Providers/SocketIO";
-import { StartRequest, TimeRequest } from "@/redux/actions/channel/type";
+import { DirectionRequest, TimeRequest } from "@/redux/actions/channel/type";
+import ENVS from "@/envs";
 
 export default function Channels() {
   const socket = useContext(SocketContext).socket;
   const dispatch = useDispatch();
   const { user } = useSelector(getUserState);
-  const { channels, lastId, continue: canContinue, channelDetail } = useSelector(getChannelState);
+  const { channelsTabs: channels, channelsDetail: channelDetail, currentChannelId } = useSelector(getChannelState);
   const { chatMode } = useSelector(getGeneralState);
 
-  const getChannels = useCallback(async (time?: TimeRequest) => {
-
-    //await new Promise((r) => setTimeout(() => r(1), 3000));
+  const getChannels = useCallback(async (time: TimeRequest, to: DirectionRequest, lastId: string) => {
     try {
       const { results } = await channelFetchs.getChannels({
         query: {
-          lastId: time ? channels.at(time === TimeRequest.AFTER ? -1 : 0)?._id || null : null, time
+          lastId,
+          to,
+          time
         },
         accessToken: user!.accessToken
       })
 
-      dispatch(channelActions.getChannels(results))
+      return { continue: results.continue, newItems: results.channels }
     } catch (e: any) {
       console.log("error channel get", e)
       failureNotification(e.response.data.message);
     }
-  }, [lastId, channels]);
+  }, [channels]);
 
   const handleOnSelect = useCallback(async (channelId: string) => {
-    if (channelDetail?._id !== channelId) {
+    if (!channelDetail[channelId]) {
       dispatch(channelActions.setCurrentChannelChatId(null));
 
       try {
@@ -52,10 +53,12 @@ export default function Channels() {
       } catch (e: any) {
         failureNotification(e.response.data.message);
       }
+    } else {
+      dispatch(channelActions.setCurrentChannelId(channelId))
     }
 
     if (chatMode !== ChatMode.CHANNEL_CHAT) dispatch(generalActions.setChatMode(ChatMode.CHANNEL_CHAT))
-  }, [channelDetail, chatMode]);
+  }, [channelDetail, chatMode, socket]);
 
   return (
     <S.ChannelItemsContainer>
@@ -64,13 +67,12 @@ export default function Channels() {
           <S.SwitchFriendIcon />
         </S.SwitchFriendButton>
         <S.Line />
-        <S.ChannelsItems
-          itemsLength={channels.length}
-          renderItem={mapChannelItem(handleOnSelect, channels)}
+        <S.InfiniteScrollChannels
+          renderItem={mapChannelItem(handleOnSelect)}
           fetchItems={getChannels}
-          hasMore={canContinue}
-          margin={300}
-          loading={<ItemSelectionSkeleton cuantity={4} reverse />}
+          loading={<ItemSelectionSkeleton cuantity={8} reverse />}
+          scrollItemsKey={ENVS.CHANNEL_TABS_ITEMS_ID}
+          startFrom={DirectionRequest.DOWN}
         />
       </S.ItemsContainer>
     </S.ChannelItemsContainer>
