@@ -1,7 +1,6 @@
 import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Param, Post, Query, Req, UseGuards } from '@nestjs/common';
 import { ChannelChatService } from './channel-chat.service';
 import { UserAccessTokenMiddleware } from '../user/user.middleware';
-import makeResponse from 'src/utils/makeResponse';
 import { BodyChannelChatData, BodyChannelChatMessage, ChannelChatChannelId, ChannelChatChatId, ChannelChatQuery, ChannelChatIds } from './channel-chat.body';
 
 @Controller('channel-chat')
@@ -12,14 +11,11 @@ export class ChannelChatController {
   @Get('message/:channelId')
   @HttpCode(HttpStatus.OK)
   async get(@Req() req: any, @Param() { channelId }: ChannelChatChannelId, @Query() query: ChannelChatChatId) {
-    return makeResponse(
-      await this.channelChatService.get(
+    return await this.channelChatService.get(
         req.accessTokenPayload._id,
         channelId,
         query
-      ),
-      HttpStatus.OK
-    )
+      )
   }
 
   @Post('message')
@@ -31,7 +27,7 @@ export class ChannelChatController {
       query.fields
     )
 
-    return makeResponse(createdMessage, HttpStatus.CREATED)
+    return createdMessage
   }
   
   @Delete('message/:channelId')
@@ -42,14 +38,11 @@ export class ChannelChatController {
     @Param() { channelId }: ChannelChatChannelId,
     @Query() { ids }: ChannelChatIds
   ) {
-    return makeResponse(
-      await this.channelChatService.delete(
+    return await this.channelChatService.delete(
         ids.split(','),
         channelId,
         chatId,
         accessTokenPayload._id
-      ),
-      HttpStatus.OK
-    )
+      )
   }
 }

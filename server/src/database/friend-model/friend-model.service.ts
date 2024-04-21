@@ -88,19 +88,13 @@ export class FriendModelService {
     messagesCount.set(userId, 0);
     messagesCount.set(friendId, 0);
 
-    let addedFriend: any = new this.friendModel({ user1: userId, user2: friendId, messagesCount }, fields);
+    let addedFriend = new this.friendModel({ user1: userId, user2: friendId, messagesCount }, fields);
 
     await addedFriend.populate('user1 user2', 'username photo color');
 
-    addedFriend = (await addedFriend.save()).toObject({ useProjection: true });
+    const { user1, user2, _id } = (await addedFriend.save()).toObject({ useProjection: true });
 
-    addedFriend.messagesCount = 0 as any
-    addedFriend.friend = addedFriend.user2
-
-    delete addedFriend.user1
-    delete addedFriend.user2
-
-    return addedFriend;
+    return { user1, user2, _id  };
   }
 
   async readMessages(

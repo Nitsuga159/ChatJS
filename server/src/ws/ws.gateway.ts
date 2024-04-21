@@ -8,6 +8,7 @@ import { HttpException, HttpStatus, Logger } from '@nestjs/common';
 import { WS_CHANNEL, WS_CONNECTION, WS_FRIEND, WS_NOTIFICATION } from './ws.events';
 import { ChannelChatDocument } from 'src/database/channel-chat-model/channel-chat-model';
 import { FriendChatDocument } from 'src/database/friend-chat-model/friend-chat-model';
+import { UserDocument } from 'src/database/user-model/user-model';
 
 @WebSocketGateway(4040, {
   cors: false,
@@ -87,8 +88,9 @@ export class Ws {
     this.server.to(channelId.toString()).emit(WS_CHANNEL.DELETE_CHANNEL_MESSAGE, { chatId, ids })
   }
 
-  async deleteFriendChatMessage(ids: string[], friendId: Types.ObjectId) {
-    this.server.to(friendId.toString()).emit(WS_FRIEND.DELETE_FRIEND_MESSAGE, { ids })
+  async deleteFriendChatMessage(ids: string[], user1: Types.ObjectId, user2: Types.ObjectId) {
+    this.sockets.get(user1.toString())?.emit(WS_FRIEND.DELETE_FRIEND_MESSAGE, { friendId: user2, ids })
+    this.sockets.get(user2.toString())?.emit(WS_FRIEND.DELETE_FRIEND_MESSAGE, { friendId: user1, ids })
   }
 
   //CHANNEL
@@ -117,9 +119,15 @@ export class Ws {
     this.server.to(channelId.toString()).emit(WS_CHANNEL.DELETE_CHANNEL_PARTICIPANT, chatId)
   }
 
+  //FRIEND
+  async addFriend(friendId: Types.ObjectId, user1: UserDocument, user2: UserDocument) {
+    this.sockets.get(user1._id)?.emit(WS_FRIEND.NEW_FRIEND, { friendId, friend: user2 })
+    this.sockets.get(user2._id)?.emit(WS_FRIEND.NEW_FRIEND, { friendId, friend: user1 })
+  }
+
   //NOTIFICATION
 
-  async sendNotification(userId: Types.ObjectId, invitationId: Types.ObjectId) {
-    this.sockets.get(userId.toString())?.emit(WS_NOTIFICATION.SEND_NOTIFICATION, { invitationId })
+  async sendNotification(userId: Types.ObjectId, notification: any) {
+    this.sockets.get(userId.toString())?.emit(WS_NOTIFICATION.NEW_NOTIFICATION, notification)
   }
 }

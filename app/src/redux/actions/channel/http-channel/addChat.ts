@@ -1,40 +1,16 @@
-import utils from "@/utils";
-import axios from "axios";
-import {
-  ChannelChat,
-  InitialStateChannels,
-  SimpleChannel,
-} from "@/redux/slices/channel/type";
-import {
-  RequestAddChannelChat,
-  ResponseAddChannelChat,
-  ResponseAddParticipantToChannel,
-} from "../type";
+import { InitialStateChannels } from "@/redux/slices/channel/type";
+import { ResponseAddChannelChat } from "../type";
 import { PayloadAction } from "@reduxjs/toolkit";
-
-const addChat = async ({
-  channelId,
-  chatName,
-  accessToken,
-}: RequestAddChannelChat): Promise<boolean> => {
-  await axios.post(
-    `/channel/add-chat/${channelId}?chatName=${chatName}`,
-    {},
-    utils.createHeaderToken(accessToken)
-  );
-
-  return true;
-};
 
 export const addChatReducer = (
   state: InitialStateChannels,
-  action: PayloadAction<ResponseAddChannelChat>
+  { payload: { channelId, chat } }: PayloadAction<ResponseAddChannelChat>
 ) => {
-  const { channelId, chat } = action.payload;
-  const { channelsDetail: channelDetail } = state;
-  
-  if (channelDetail?._id === channelId)
-    channelDetail.chats = [...channelDetail.chats, chat];
-};
+  const { channelsDetail } = state;
 
-export default addChat;
+  const channel = channelsDetail[channelId]
+
+  if(!channel) return state;
+
+  channel.chats = [...channel.chats, chat]
+};

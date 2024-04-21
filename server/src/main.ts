@@ -14,7 +14,7 @@ async function bootstrap() {
       exceptionFactory: (errors) => {
         const messages = errors.map(error => Object.values(error.constraints)).flat();
         return new BadRequestException({ status: 400, messages });
-      }
+      },
     }),
   );
 

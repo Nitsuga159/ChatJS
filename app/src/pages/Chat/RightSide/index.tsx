@@ -4,6 +4,7 @@ import SearchUser from './SearchUser';
 import { TbBellFilled, TbBellRingingFilled } from "react-icons/tb";
 import { BsSearch } from "react-icons/bs";
 import { FaUserAlt } from "react-icons/fa";
+import Notification from './Notifications';
 
 enum Section {
   SEARCH_USER,
@@ -37,7 +38,8 @@ export default function RightSide() {
         </S.ItemSection>
       </S.NavBarSection>
       {
-        section === Section.SEARCH_USER ? <SearchUser />
+        section === Section.SEARCH_USER ? <SearchUser /> :
+        section === Section.NOTIFICATIONS ? <Notification />
           : <h1>nada</h1>
       }
     </S.Container>

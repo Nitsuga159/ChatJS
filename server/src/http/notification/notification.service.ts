@@ -23,8 +23,8 @@ export class NotificationService {
       await this.notificationModelService.find(userId, queryProps);
 
     return {
-      continue: userNotifications.length === PER_PAGE_NOTIFICATIONS,
-      notifications: userNotifications,
+      canContinue: userNotifications.length === PER_PAGE_NOTIFICATIONS,
+      items: userNotifications,
     };
   }
 
@@ -75,9 +75,9 @@ export class NotificationService {
     }
 
     const notification: NotificationDocument =
-      await this.notificationModelService.create({ destined, sender, invitationId, type });
+      (await this.notificationModelService.create({ destined, sender, invitationId, type }));
 
-    this.wsGateway.sendNotification(destined, invitationId)
+    this.wsGateway.sendNotification(destined, notification)
 
     return notification
   }

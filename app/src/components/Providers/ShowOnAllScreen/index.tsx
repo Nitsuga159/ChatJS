@@ -24,7 +24,11 @@ function ShowOnAllScreenProvider({ children }: { children: ReactNode }) {
   const [settings, setSettings] =
     useState<SettingsType>({ open: false, component: () => <></> });
 
-  const showOnAllScreen = useCallback((component: (isOpen: boolean) => JSX.Element) => {
+  const close = useCallback(() => {
+      setSettings(prev => ({ ...prev, open: false }))
+  }, [])
+
+  const showOnAllScreen = useCallback((component: (isOpen: boolean, close: () => void) => JSX.Element) => {
     setSettings({ open: true, component })
   }, [])
 
@@ -37,7 +41,7 @@ function ShowOnAllScreenProvider({ children }: { children: ReactNode }) {
       }}
       ref={componentToShowRef}
     >
-      {settings.component(settings.open)}
+      {settings.component(settings.open, close)}
     </ShowContainer>
   )
 

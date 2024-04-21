@@ -49,11 +49,12 @@ export const ItemsContainer = styled.div`
 
 export const InfiniteScrollChannels = styled(InfiniteScroll)`
   width: 100%;
-  height: 100%;
+  max-height: 100%;
   overflow-x: hidden;
   overflow-y: auto;
   padding: 0 0.5rem;
-  padding-bottom: 0.5rem;
+  padding-bottom: 0;
+  border-bottom: 4px solid ${COLORS.BROWN_GRAY};
   &::-webkit-scrollbar {
     width: 4px;
   }
@@ -102,6 +103,21 @@ export const PerfilImageItem = styled.img`
   height: 100%;
 `;
 
-export const PerfilLetterItem = styled.span``;
+export const PerfilLetterItem = styled.span`
+`
 
 export const PerfilLogoItem = styled(LogoIcon)``;
+
+export const AddChannelButton = styled.button`
+  font-size: 1.5rem;
+  margin: 8px 0;
+  width: 45px;
+  height: 45px;
+  border-radius: 50%;
+  background-color: ${COLORS.GRAY};
+  transition: 0.3s ease all;
+  &:hover {
+    background-color: ${COLORS.FOLLY};
+    border-radius: 25%;
+  }
+`

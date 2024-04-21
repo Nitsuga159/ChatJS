@@ -4,7 +4,6 @@ import {
   NotificationType,
 } from 'src/database/notification-model/notification-model.type';
 import { UserAccessTokenMiddleware } from '../user/user.middleware';
-import makeResponse from 'src/utils/makeResponse';
 import { BodyNotificationChannel, BodyNotificationFriend, NotificationQuery, NotificationId } from './notification.body';
 
 @Controller('notification')
@@ -13,14 +12,12 @@ export class NotificationController {
   constructor(private readonly notificationService: NotificationService) { }
 
   @Get()
+  @HttpCode(HttpStatus.OK)
   async find(@Req() req: any, @Query() query: NotificationQuery) {
-    return makeResponse(
-      await this.notificationService.find(
+    return await this.notificationService.find(
         req.accessTokenPayload._id,
         query
-      ),
-      HttpStatus.OK
-    )
+      )
   }
 
   @Post('friend')
@@ -33,7 +30,7 @@ export class NotificationController {
       invitationId: accessTokenPayload._id
     });
 
-    return makeResponse({ success: true }, HttpStatus.CREATED)
+    return { success: true }
   }
 
   @Post('channel')
@@ -46,15 +43,12 @@ export class NotificationController {
       invitationId: channelId
     });
 
-    return makeResponse({ success: true }, HttpStatus.CREATED)
+    return { success: true }
   }
 
   @Delete(':notificationId')
   @HttpCode(HttpStatus.OK)
   async delete(@Req() { accessTokenPayload }: any, @Param() { notificationId }: NotificationId) {
-    return makeResponse(
-      await this.notificationService.delete(notificationId, accessTokenPayload._id),
-      HttpStatus.OK
-    )
+    return await this.notificationService.delete(notificationId, accessTokenPayload._id)
   }
 }

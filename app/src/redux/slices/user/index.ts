@@ -12,7 +12,7 @@ const userSlice = createSlice({
   name: "user",
   initialState,
   reducers: {
-    reset(state) {
+    logout(state) {
       state.user = null;
     },
     login: loginReducer,

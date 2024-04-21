@@ -73,7 +73,7 @@ export const NavBarDeleteMessages = styled.div`
   margin: 1rem 0;
   height: 40px;
   background-color: ${COLORS.MIDDLE_BLACK};
-  box-shadow: 0px 0px 10px ${COLORS.BLACK};
+  box-shadow: 0px 0px 6px 5px ${COLORS.BLACK};
   border-radius: 6px;
   z-index: ${Z_INDEX._97};
   animation: ${animationNavBar} 0.6s ease forwards;

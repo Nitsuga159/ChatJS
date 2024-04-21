@@ -8,7 +8,7 @@ export interface RequestGetNotifications {
 
 export interface ResponseGetNotifications {
   continue: boolean;
-  results: Notification[];
+  result: Notification[];
 }
 
 //CREATE_CHANNEL_NOTIFICATION

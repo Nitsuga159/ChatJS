@@ -1,25 +1,32 @@
 import { useEffect, useRef, useState } from "react";
 
 interface GetSizeProps {
-  children: ((refresh: () => void) => JSX.Element) | JSX.Element;
+  children: JSX.Element;
   callback: (size: { width: number, height: number }) => void;
+  id?: string
 }
 
-export default function GetSize({ children, callback }: GetSizeProps) {
+export default function GetSize({ children, callback, id }: GetSizeProps) {
   const sizeRef = useRef<HTMLDivElement | null>(null);
-  const [gotSize, setGotSize] = useState<boolean>(false);
 
   useEffect(() => {
-    if (sizeRef.current && !gotSize) {
-      const { width, height } = sizeRef.current.getBoundingClientRect();
-
-      callback({ width, height });
-
-      setGotSize(true);
+    if(id) {
+      sizeRef.current = document.getElementById(id) as HTMLDivElement
     }
-  }, [gotSize]);
+    if (!sizeRef.current) return;
 
-  const childrenToRender = typeof children === 'function' ? children(() => setGotSize(false)) : children;
+    callback({ width: sizeRef.current?.clientWidth || 0, height: sizeRef.current?.clientHeight || 0 })
 
-  return gotSize ? childrenToRender : <div ref={sizeRef}>{childrenToRender}</div>;
+    const observer = new MutationObserver(() => {
+      callback({ width: sizeRef.current?.clientWidth || 0, height: sizeRef.current?.clientHeight || 0 })
+    })
+
+    observer.observe(sizeRef.current, { childList: true, subtree: true })
+
+    return () => {
+      observer.disconnect()
+    }
+  }, []);
+
+  return id ?  children : <div ref={sizeRef}>{children}</div>;
 }

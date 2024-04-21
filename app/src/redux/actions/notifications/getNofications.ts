@@ -20,10 +20,10 @@ export const getNotificationsReducer = (
   state: InitialStateNotification,
   action: PayloadAction<ResponseGetNotifications>
 ) => {
-  const { continue: canContinue, results } = action.payload;
-  state.lastId = results[0]._id;
+  const { continue: canContinue, result } = action.payload;
+  state.lastId = result[0]._id;
   state.continue = canContinue;
-  state.notifications = [...state.notifications, ...results];
+  state.notifications = [...state.notifications, ...result];
 };
 
 export default getNotifications;

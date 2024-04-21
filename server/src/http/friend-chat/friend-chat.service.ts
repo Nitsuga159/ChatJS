@@ -28,8 +28,8 @@ export class FriendChatService {
     const messagesFriendChat = await this.friendChatModelService.get(friendId, query);
 
     return {
-      continue: messagesFriendChat.length === PER_PAGE_MESSAGES,
-      messages: messagesFriendChat,
+      canContinue: messagesFriendChat.length === PER_PAGE_MESSAGES,
+      items: messagesFriendChat,
     };
   }
 
@@ -69,7 +69,7 @@ export class FriendChatService {
 
     await this.friendChatModelService.delete(ids, friendId, userId);
 
-    this.wsGateway.deleteFriendChatMessage(ids, friendId)
+    this.wsGateway.deleteFriendChatMessage(ids, friendId, userId)
 
     return { ids }
   }

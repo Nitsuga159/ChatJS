@@ -1,35 +1,39 @@
-import { ChangeEvent, KeyboardEvent, useCallback, useEffect, useRef, useState } from 'react';
+import { ChangeEvent, useContext, useEffect, useRef, useState } from 'react';
 import * as S from './SearchUser.styled';
-import { ESearchStatus, ISearchedUsers } from './type';
-import axios from 'axios';
-import { useSelector } from 'react-redux';
-import { RootState } from '@/redux/store';
 import ProfileAvatar from '@/components/ProfileAvatar';
+import { User } from '@/types/user.type';
+import Loader from '@/components/Svg/Loader/Loader';
+import { COLORS } from '@/styles';
+import { HttpClientContext } from '@/components/Providers/http';
+import { UserInfoNameAPI } from '@/components/Providers/http/api-interface';
+import Logger from '@/utils/logger';
+import { IsFriendAPI, IsFriendAPIResponse } from '@/components/Providers/http/friend-api-interface';
+import { ShowOnAllScreenContext } from '@/components/Providers/ShowOnAllScreen';
+import FriendInfo from '@/components/FriendInfo';
 
-export default function SearchUser({ }) {
-  const user = useSelector((state: RootState) => state.user.user);
+export default function SearchUser() {
+  const [users, setUsers] = useState<User[]>([])
+  const [isSearching, setIsSearching] = useState<boolean>(false)
   const inputRef = useRef(null);
-  const [searchedUser, setSearchedUser] = useState<ISearchedUsers>({
-    lastId: null,
-    continue: true,
-    users: []
-  });
+  const timeRef = useRef<NodeJS.Timeout>()
   const [input, setInput] = useState<string>("");
-  const [resetCb, setResetCb] = useState<(() => void) | null>(null);
+  const httpClient = useContext(HttpClientContext)!
+  const showOnAllScreen = useContext(ShowOnAllScreenContext)
 
-  const handleChangeInput = useCallback(
-    (e: ChangeEvent<HTMLInputElement>) => setInput(e.target.value),
-    []
-  );
+  const handleChangeInput = (e: ChangeEvent<HTMLInputElement>) => {
+    setInput(e.target.value)
+  }
 
   const handleClickSearch = () =>
     inputRef.current && (inputRef.current as HTMLInputElement).focus();
 
-  const renderItem = (index: number) => {
-    const user = searchedUser.users[index];
-
+  const renderItem = (user: User) => {
     return (
-      <S.Tab key={user._id}>
+      <S.Tab key={user._id} onClick={async () => {
+        const { result: { user: friend, isFriend, hasInvitation } } = (await httpClient!(new IsFriendAPI({ friend_id: user._id }))).data as IsFriendAPIResponse
+
+        showOnAllScreen(() => <FriendInfo friend={friend} isFriend={isFriend} hasInvitation={hasInvitation} />)
+      }}>
         <S.AvatarContainer>
           <ProfileAvatar photo={user.photo} color={user.color} />
         </S.AvatarContainer>
@@ -40,28 +44,26 @@ export default function SearchUser({ }) {
 
   const getUsers = async () => {
     try {
-      const { data } = await axios.get(`/user/name?username=${input}&lastId=${searchedUser.lastId || ''}`, { headers: { Authorization: `Bearer ${user?.accessToken}` } });
+      const { data: { result } } = await httpClient(new UserInfoNameAPI({ params: { username: input } }));
 
-      setSearchedUser((prev) => ({
-        ...prev,
-        continue: data.continue,
-        users: [...prev.users, ...data.result,],
-        lastId: data.result.at(-1)?._id || null
-      }));
+      setUsers(result.items)
     } catch (e) {
       console.log(e);
+    } finally {
+      setIsSearching(false)
     }
   }
 
   useEffect(() => {
-    resetCb && resetCb()
+    if (!input) return;
 
-    setSearchedUser({
-      lastId: null,
-      continue: true,
-      users: []
-    });
-  }, [input]);
+    clearTimeout(timeRef.current)
+
+    setIsSearching(true)
+    setUsers([])
+
+    timeRef.current = setTimeout(() => getUsers(), 700)
+  }, [input])
 
   return (
     <S.Container>
@@ -78,13 +80,16 @@ export default function SearchUser({ }) {
       </S.SearchContainer>
       <S.Users>
         {
-          input === '' && <UserFound
+          !isSearching && input === '' && <UserFound
             text="Search your friends"
             icon={<S.UserIcon />}
           />
         }
         {
-          !searchedUser.continue && searchedUser.users.length === 0 && <UserFound
+          isSearching && <S.SearchLoader><Loader style={{ width: "100px" }} color={COLORS.FOLLY} /></S.SearchLoader>
+        }
+        {
+          !isSearching && users.length === 0 && input !== "" && <UserFound
             text="No users found..."
             icon={<S.UserNotFoundIcon />}
           />
@@ -93,15 +98,9 @@ export default function SearchUser({ }) {
         {
           input !== '' &&
           <S.Container>
-            <S.UserScroll
-              resetCb={setResetCb}
-              size={{ width, height: height / 3 }}
-              itemsLength={searchedUser.users.length}
-              fetchItems={getUsers}
-              renderItem={renderItem}
-              hasMore={searchedUser.continue}
-              loading={<p>cargando</p>}
-            />
+            {
+              users.map(renderItem)
+            }
           </S.Container>
         }
       </S.Users>

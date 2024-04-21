@@ -2,11 +2,12 @@ import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document, Types } from 'mongoose';
 import { User } from '../user-model/user-model';
 import { ChannelChatType, ChannelVoiceType } from './channel-model.type';
+import DefaultPropertiesMongoDB from '../default-properties';
 
 export type ChannelDocument = Channel & Document;
 
 @Schema({ timestamps: true })
-export class Channel {
+export class Channel extends DefaultPropertiesMongoDB {
   @Prop({
     type: String,
     required: true,

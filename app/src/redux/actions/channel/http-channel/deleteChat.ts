@@ -1,30 +1,18 @@
 import { PayloadAction } from "@reduxjs/toolkit";
-import utils from "@/utils";
-import axios from "axios";
 import { InitialStateChannels } from "@/redux/slices/channel/type";
-import { RequestDeleteChatChannel, ResponseDeleteChatChannel } from "../type";
-
-const deleteChat = async ({
-  channelId,
-  chatId,
-  accessToken,
-}: RequestDeleteChatChannel): Promise<void> => {
-  await axios.delete(
-    `/channel/delete-chat/${channelId}?chatId=${chatId}`,
-    utils.createHeaderToken(accessToken)
-  );
-};
+import { ResponseDeleteChatChannel } from "../type";
 
 export const deleteChatReducer = (
   state: InitialStateChannels,
-  action: PayloadAction<ResponseDeleteChatChannel>
+  { payload: { channelId, chatId } }: PayloadAction<ResponseDeleteChatChannel>
 ) => {
-  const { channelId, chatId } = action.payload;
-  const { channelDetail } = state.channel;
-  if (channelDetail?._id === channelId)
-    channelDetail.chats = channelDetail.chats.filter(
-      ({ _id }) => _id !== chatId
-    );
-};
+  const { channelsDetail } = state;
 
-export default deleteChat;
+  const channel = channelsDetail[channelId]
+
+  if(!channel) return state;
+
+  channel.chats = channel.chats.filter(({ _id }) => _id !== chatId)
+
+  return state
+};

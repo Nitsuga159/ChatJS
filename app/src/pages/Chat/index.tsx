@@ -12,19 +12,17 @@ import { getFriendState } from "@/redux/slices/friend";
 import FriendMessages from "./Messages/FriendMessages";
 import { WS_CHANNEL, WS_FRIEND } from "@/ws.events";
 import { ChannelMessage } from "@/redux/slices/channel/type";
-import { channelActions } from "@/redux/actions/channel";
 import { AppDispatch } from "@/redux/store";
-import { friendActions } from "@/redux/actions/friend";
 import { ResponseAddFriendMessage, ResponseDeleteFriendMessage } from "@/redux/actions/friend/type";
 import { ResponseDeleteChannelMessage } from "@/redux/actions/channel/http-messages/type";
-import { actions } from '@/redux/slices/scrollItems';
+import { actions as scrollItemsActions } from '@/redux/slices/scrollItems';
 import { DirectionRequest } from '@/redux/actions/channel/type';
 
 
 export default function Chat() {
   const socket = useContext(SocketContext).socket;
   const dispatch: AppDispatch = useDispatch();
-  const { friends, currentChatId: currentFriendChat } = useSelector(getFriendState);
+  const { currentFriend } = useSelector(getFriendState);
   const { channelsDetail, currentChannelId, currentChatId: currentChannelChat } = useSelector(getChannelState);
   const { chatMode } = useSelector(getGeneralState);
 
@@ -32,21 +30,23 @@ export default function Chat() {
     if (!socket) return;
 
     const addFriendMessage =
-      (message: ResponseAddFriendMessage) => dispatch(friendActions.addMessage(message));
+      (message: ResponseAddFriendMessage) => {
+        dispatch(scrollItemsActions.add({ direction: DirectionRequest.DOWN, id: message.friendId, item: message }))
+      };
 
     const deleteFriendMessage =
       (data: ResponseDeleteFriendMessage) => {
-       // dispatch(actions.removeMany({ id: data.friendId }))
+        dispatch(scrollItemsActions.removeMany({ id: data.friendId, valueIds: data.ids }))
       }
 
     const addChannelMessage =
       (message: ChannelMessage) => {
-        dispatch(actions.add({ id: message.chatId, direction: DirectionRequest.DOWN, item: message }))
+        dispatch(scrollItemsActions.add({ id: message.chatId, direction: DirectionRequest.DOWN, item: message }))
       }
 
     const deleteChannelMessage =
       (data: ResponseDeleteChannelMessage) => {
-        dispatch(actions.removeMany({ id: data.chatId, valueIds: data.ids }))
+        dispatch(scrollItemsActions.removeMany({ id: data.chatId, valueIds: data.ids }))
       }
 
 
@@ -83,11 +83,11 @@ export default function Chat() {
             />
           </S.MessagesContainer> :
 
-          currentFriendChat && chatMode === ChatMode.FRIEND_CHAT ?
+          currentFriend && chatMode === ChatMode.FRIEND_CHAT ?
             <S.MessagesContainer>
-              <S.TitleContainer><S.ChatICon style={{ fontSize: 30 }} /> {friends.filter(friend => friend._id === currentFriendChat)[0].friend.username}</S.TitleContainer>
+              <S.TitleContainer><S.ChatICon style={{ fontSize: 30 }} /> {currentFriend.friend.username}</S.TitleContainer>
               <FriendMessages
-                chatId={currentFriendChat}
+                chatId={currentFriend._id}
               />
             </S.MessagesContainer> :
             <NoChatSelected />

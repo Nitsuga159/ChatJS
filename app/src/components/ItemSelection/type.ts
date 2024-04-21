@@ -1,8 +1,8 @@
 import { ReactNode } from "react";
 
-export interface ItemSelectionProps {
+export interface ItemSelectionProps extends React.DetailedHTMLProps<React.HTMLAttributes<HTMLDivElement>, HTMLDivElement> {
   id?: string
-  onClick: () => void;
+  isSelected: boolean
   name: string;
   children: ReactNode;
 }

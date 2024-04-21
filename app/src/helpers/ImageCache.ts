@@ -1,5 +1,5 @@
 import { StringMap } from "@/basic-types";
-import { httpClient } from "./httpClients";
+import { httpClient } from "../components/Providers/http/httpClients";
 import wait from "@/utils/wait";
 
 /**

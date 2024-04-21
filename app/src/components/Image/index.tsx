@@ -3,11 +3,7 @@ import * as S from './Image.styled'
 import React from "react"
 import ImageCache from "@/helpers/ImageCache"
 
-interface ImageProps extends React.DetailedHTMLProps<React.ImgHTMLAttributes<HTMLImageElement>, HTMLImageElement> {
-    loadWidth: number, loadHeight: number
-}
-
-export default function Image({ loadWidth, loadHeight, src, ...props }: ImageProps) {
+export default function Image({ width, height, src, ...props }: React.DetailedHTMLProps<React.ImgHTMLAttributes<HTMLImageElement>, HTMLImageElement>) {
     const [mySrc, setMySrc] = useState<string>()
 
     useEffect(() => {
@@ -24,7 +20,7 @@ export default function Image({ loadWidth, loadHeight, src, ...props }: ImagePro
     return (
         <>
             {
-                !mySrc && <S.LoadImage width={loadWidth} height={loadHeight} />
+                !mySrc && <S.LoadImage width={width} height={height} />
             }
             <img {...props} src={mySrc} />
         </>

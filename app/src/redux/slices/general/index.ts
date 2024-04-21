@@ -2,6 +2,7 @@ import { RootState } from "@/redux/store";
 import { createSlice } from "@reduxjs/toolkit";
 import { InitialStateGeneral, ChatMode } from "./type";
 import setChatMode from "@/redux/actions/general/setChatMode";
+import { LANGUAGE } from "@/languages/language-interface";
 
 const initialState: InitialStateGeneral = {
   chatMode: ChatMode.FRIEND_CHAT,
@@ -9,6 +10,7 @@ const initialState: InitialStateGeneral = {
   microphone: true,
   headphone: true,
   showProfile: false,
+  language: LANGUAGE.EN
 };
 
 const channelSlice = createSlice({
@@ -35,4 +37,5 @@ const channelSlice = createSlice({
 export const { actions, reducer } = channelSlice;
 
 export const getGeneralState = (state: RootState) => state.general;
+export const getLanguage = (state: RootState) => state.general.language
 export const getChatMode = (state: RootState) => state.general.chatMode;

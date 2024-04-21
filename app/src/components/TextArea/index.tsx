@@ -107,6 +107,7 @@ export default function TextArea({ onSendMessage, maxLength, maxAutoHeight = 200
           value={value}
           maxLength={maxLength}
           onPaste={handlePasteClipboard}
+          spellCheck={false}
         />
       </InputContainer>
     </Container>

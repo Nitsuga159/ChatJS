@@ -19,7 +19,7 @@ export class BodyMapChannel {
 
     @IsString()
     @IsOptional()
-    photo: string
+    photo: any
 }
 
 export class BodyMapChannelAddChat {

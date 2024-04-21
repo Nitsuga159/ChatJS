@@ -24,11 +24,13 @@ const makeItemsMenu = (image: HTMLImageElement): MenuItemType[] =>
     {
       icon: <MdOutlineContentCopy />,
       name: "Copy image",
+      hasDivider: true,
       onSelect: async () => await copyImageToClipboard(image.src)
     },
     {
       icon: <FiSave />,
       name: "Save image",
+      color: COLORS.FOLLY,
       onSelect: () => downloadFile(image.src, new Date().toISOString() + ".jpeg")
     }
   ]
@@ -62,7 +64,7 @@ const Message = React.memo((
     (isOpen: boolean) =>
       <CSSAnimation open={isOpen} timeout={300}>
         {
-          (status) => <S.MessageImageComplete loadWidth={200} loadHeight={200} status={status} src={photoURL} />
+          (status) => <S.MessageImageComplete width={200} height={200} status={status} src={photoURL} />
         }
       </CSSAnimation>
   );
@@ -71,6 +73,7 @@ const Message = React.memo((
     if (!canDelete || isToDelete) return;
 
     addToDelete(id)
+    setIsInside(false)
   }, [isToDelete, canDelete, id]);
 
   return (
@@ -98,8 +101,8 @@ const Message = React.memo((
           messagePhotos.map((photoURL, index) =>
             <S.MessageImage
               key={index}
-              loadWidth={250}
-              loadHeight={50}
+              width={250}
+              height={50}
               src={photoURL}
               onClick={isToDelete ? undefined : () => handleClickMessageImage(photoURL)}
               onContextMenu={isToDelete ? undefined : (e) => handleOpenContextMenu(e, makeItemsMenu(e.target as HTMLImageElement))}

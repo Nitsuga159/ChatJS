@@ -18,7 +18,6 @@ import addChannel from "@/redux/actions/channel/local/addChannel";
 import setCurrentChannelId from "@/redux/actions/channel/local/setCurrentChannelId";
 
 const initialState: InitialStateChannels = {
-  channelsTabs: [],
   channelsDetail: {},
   currentChannelId: null,
   currentChatId: null,
@@ -40,7 +39,6 @@ const channelSlice = createSlice({
     setCurrentChannelId,
     addChannel,
     reset(state) {
-      state.channelsTabs = []
       state.channelsDetail = {}
       state.currentChatId =  null
     },

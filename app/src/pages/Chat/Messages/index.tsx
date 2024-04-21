@@ -11,7 +11,7 @@ import { DirectionRequest } from '@/redux/actions/channel/type';
 import { MessageType } from '@/components/Message/type';
 
 export default function Messages(
-  { scrollItemsKey, giveRef, deleteMessages, getMessages, setMessage }:
+  { scrollItemsKey, api, giveRef, deleteMessages, setMessage }:
     IMessagesProps
 ) {
   const [messagesToDelete, setMessageToDelete] = useState<string[]>([])
@@ -81,9 +81,9 @@ export default function Messages(
       }
       <S.MessagesInifiniteScroll
         scrollItemsKey={scrollItemsKey}
+        api={api}
         giveRef={giveRef}
         renderItem={mapMessages}
-        fetchItems={getMessages}
         loading={<MessageSkeleton cuantity={8} />}
         startFrom={DirectionRequest.UP}
       />

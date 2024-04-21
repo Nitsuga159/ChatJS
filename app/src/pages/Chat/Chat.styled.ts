@@ -7,7 +7,7 @@ export const ChatContainer = styled.div`
   height: 100%;
   background-color: ${COLORS.GRAY};
   display: grid;
-  grid-template-columns: 19rem 1fr 13rem;
+  grid-template-columns: 19rem 1fr 15.5rem;
   grid-template-rows: 100%;
 `;
 

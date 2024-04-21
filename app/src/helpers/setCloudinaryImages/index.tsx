@@ -7,11 +7,11 @@ export default async ({ images, accessToken }: { images: File[], accessToken: st
 
   images.forEach(img => formData.append('image', img));
 
-  const { data }: { data: string[] } = await axios.post(
+  const { data } = await axios.post(
     '/cloudinary/upload',
     formData,
     { headers: { Authorization: `Bearer ${accessToken}` } }
   );
 
-  return data;
+  return data.result;
 };

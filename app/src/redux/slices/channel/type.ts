@@ -1,6 +1,4 @@
-import { SettingsScroll } from "@/components/InfiniteScroll/type";
 import { RequestAddChannelMessage } from "@/redux/actions/channel/http-messages/type";
-import { TimeRequest } from "@/redux/actions/channel/type";
 import { Message } from "@/types/chat.type";
 import { SimpleUser } from "@/types/user.type";
 
@@ -13,6 +11,7 @@ export interface SimpleChannel {
   _id: string;
   name: string;
   photo: string | null;
+  admin: string
 }
 
 export interface SimpleChannelChat {
@@ -43,7 +42,6 @@ export interface IMessagesToSend extends RequestAddChannelMessage {
 }
 
 export interface InitialStateChannels {
-  channelsTabs: SimpleChannel[];
   channelsDetail: { [key: string]: ChannelDetail };
   currentChannelId: string | null;
   currentChatId: string | null;

@@ -1,10 +1,13 @@
-import { useCallback, UIEvent, useEffect, useRef, useState, useLayoutEffect } from "react";
+import { useCallback, UIEvent, useEffect, useRef, useState, useLayoutEffect, useContext } from "react";
 import GetSize from "../GetSize";
 import { IRefsInfiniteScroll, InfiniteScrollProps, SettingsScroll } from "./type";
 import { DirectionRequest, TimeRequest } from "@/redux/actions/channel/type";
 import wait from "@/utils/wait";
 import { useDispatch, useSelector } from "react-redux";
 import { actions, getScrollItems } from "@/redux/slices/scrollItems";
+import { NumberMap } from "@/basic-types";
+import { HttpClientContext } from "../Providers/http";
+import { DefaultAPI, HTTP_METHOD } from "../Providers/http/api-interface";
 
 /*
   ANNOTATIONS:
@@ -13,20 +16,21 @@ import { actions, getScrollItems } from "@/redux/slices/scrollItems";
     - ScrollTop the current scroll number
 */
 
+const lastScrolls: NumberMap = {}
+
 /**
  * 
  * @param props: { id: uuid } 
  * @returns 
  */
 export default function InfiniteScroll(
-  { id, loading, className, startFrom, giveRef, renderItem, fetchItems, scrollItemsKey, maxItems, maxVirtualItems, margin = 0 }:
+  { id, loading, className, startFrom, giveRef, renderItem, api, scrollItemsKey, maxItems, maxVirtualItems, margin = 0 }:
     InfiniteScrollProps
 ) {
   const { current: refs } = useRef<IRefsInfiniteScroll>({
     infiniteScrollRef: null,
-    timeout: 100,
-    functionId: null,
-    lastScrolls: {}
+    timeout: 50,
+    functionId: null
   });
 
   const [config, setConfig] = useState({ isFetching: false })
@@ -34,6 +38,17 @@ export default function InfiniteScroll(
   const scrollItems = useSelector(getScrollItems)[scrollItemsKey] || { items: [], virtualItems: [], continueFetchingDown: true, continueFetchingUp: true, lastScrollStop: 0, maxItems, maxVirtualItems }
   const items = scrollItems.items
   const dispatch = useDispatch()
+  const httpClient = useContext(HttpClientContext)!
+
+  const fetchItems = async (time: TimeRequest, to: DirectionRequest, lastId: string) => {
+    api.setParam("time", time)
+    api.setParam("to", to)
+    api.setParam("lastId", lastId)
+
+    const { data: { result: { canContinue, items } } } = await httpClient(api)
+
+    return { canContinue, items }
+  }
 
   const hasScroll = useCallback(() => {
     const beforeHeight = scrollItems.continueFetchingUp ? actualLoadingHeight : 0
@@ -43,8 +58,8 @@ export default function InfiniteScroll(
   }, [scrollItems.continueFetchingDown, scrollItems.continueFetchingUp, actualLoadingHeight])
 
   useEffect(() => {
-    if (scrollItemsKey !== refs.scrollItemsKey && refs.lastScrolls[scrollItemsKey] !== undefined) {
-      refs.infiniteScrollRef!.scrollTop = refs.lastScrolls[scrollItemsKey]
+    if (scrollItemsKey !== refs.scrollItemsKey && lastScrolls[scrollItemsKey] !== undefined) {
+      refs.infiniteScrollRef!.scrollTop = lastScrolls[scrollItemsKey]
     }
 
     refs.scrollItemsKey = scrollItemsKey
@@ -59,12 +74,12 @@ export default function InfiniteScroll(
 
     setConfig({ isFetching: true })
     fetchItems(startFrom === DirectionRequest.DOWN ? TimeRequest.AFTER : TimeRequest.BEFORE, startFrom, lastId)
-      .then(response => {
+      .then(({ canContinue, items }) => {
         dispatch(actions.set({
           id: scrollItemsKey,
-          items: response?.newItems || [],
-          continueFetchingDown: Boolean(startFrom === DirectionRequest.DOWN && response?.continue),
-          continueFetchingUp: Boolean(startFrom === DirectionRequest.UP && response?.continue),
+          items: items || [],
+          continueFetchingDown: Boolean(startFrom === DirectionRequest.DOWN && canContinue),
+          continueFetchingUp: Boolean(startFrom === DirectionRequest.UP && canContinue),
           direction: startFrom!
         }))
       })
@@ -75,16 +90,17 @@ export default function InfiniteScroll(
   const handleScroll = useCallback(async (e: UIEvent<HTMLDivElement>) => {
     const { scrollHeight, clientHeight, scrollTop } = e.target as HTMLDivElement;
 
-    const lastScroll = refs.lastScrolls[scrollItemsKey] || 0
+    const lastScroll = lastScrolls[scrollItemsKey] || 0
     const goToDown = scrollTop > lastScroll
-    refs.lastScrolls[scrollItemsKey] = scrollTop
+    lastScrolls[scrollItemsKey] = scrollTop
 
     //CAN REQUEST
     let directionTime = null;
     const beforeHeight = scrollItems.continueFetchingUp ? actualLoadingHeight : 0
     const afterHeight = scrollItems.continueFetchingDown ? actualLoadingHeight : 0
 
-    if (scrollTop - margin <= beforeHeight && !goToDown) {
+
+    if (scrollTop - clientHeight - margin <= beforeHeight && !goToDown) {
       directionTime = TimeRequest.BEFORE
     } else if (scrollTop >= scrollHeight - clientHeight - (afterHeight) - margin && goToDown) {
       directionTime = TimeRequest.AFTER
@@ -100,7 +116,7 @@ export default function InfiniteScroll(
       const lastId = items.at(isAfterTime ? -1 : 0)._id
       refs.lastItemId = lastId
 
-      await wait(3)
+     // await wait(3)
 
       try {
         const results = await fetchItems(currentTime!, startFrom!, lastId!)
@@ -109,9 +125,9 @@ export default function InfiniteScroll(
 
         dispatch(actions.set({
           id: scrollItemsKey,
-          items: results?.newItems as any[],
-          continueFetchingDown: results.continue,
-          continueFetchingUp: results.continue,
+          items: results?.items as any[],
+          continueFetchingDown: results.canContinue,
+          continueFetchingUp: results.canContinue,
           direction: currentTime === TimeRequest.AFTER ? DirectionRequest.DOWN : DirectionRequest.UP
         }))
       } finally {
@@ -133,7 +149,7 @@ export default function InfiniteScroll(
       const beforeHeight = scrollItems.continueFetchingUp ? actualLoadingHeight : 0
       const afterHeight = scrollItems.continueFetchingDown ? actualLoadingHeight : 0
 
-      const isAtBottom = (refs.lastScrolls[scrollItemsKey] || scrollTop) >= (scrollHeight - clientHeight)
+      const isAtBottom = (lastScrolls[scrollItemsKey] || scrollTop) >= (scrollHeight - clientHeight)
 
       if (startFrom === DirectionRequest.UP && (!hasScroll() || isAtBottom)) {
         refs.infiniteScrollRef.scrollTop = refs.infiniteScrollRef.scrollHeight
@@ -164,9 +180,7 @@ export default function InfiniteScroll(
       className={className}
       onScroll={(e) => {
         if (!items.length) return;
-        if (refs.functionId) clearTimeout(refs.functionId);
-
-        refs.functionId = setTimeout(() => handleScroll(e), refs.timeout);
+        handleScroll(e)
       }}
     >
       {scrollItems.continueFetchingUp && loadingComponent}

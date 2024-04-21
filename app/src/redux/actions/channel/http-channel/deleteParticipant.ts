@@ -1,41 +1,29 @@
 import { PayloadAction } from "@reduxjs/toolkit";
-import utils from "@/utils";
-import axios from "axios";
 import { InitialStateChannels } from "@/redux/slices/channel/type";
-import { RequestDeleteParticipant, ResponseDeleteParticipant } from "../type";
-
-const deleteParticipant = async ({
-  channelId,
-  userId,
-  accessToken,
-}: RequestDeleteParticipant): Promise<void> => {
-  await axios.delete(
-    `/channel/delete-participant/${channelId}?userId=${userId}`,
-    utils.createHeaderToken(accessToken)
-  );
-};
+import { ResponseDeleteParticipant } from "../type";
 
 export const deleteParticipantFromChannelReducer = (
   state: InitialStateChannels,
-  action: PayloadAction<ResponseDeleteParticipant>
+  { payload: { channelId, userId } }: PayloadAction<ResponseDeleteParticipant>
 ) => {
-  const { channelId, userId } = action.payload;
-  const { channelDetail } = state.channel;
-  if (channelDetail?._id === channelId)
-    channelDetail.participants = channelDetail.participants.filter(
-      ({ _id }) => _id !== userId
-    );
+  const channel = state.channelsDetail[channelId]
+
+  if(!channel) return state;
+
+  channel.participants = channel.participants.filter(({ _id }) => _id !== userId)
+
+  return state
 };
 
 export const deleteChannelFromParticipantReducer = (
   state: InitialStateChannels,
-  action: PayloadAction<Omit<ResponseDeleteParticipant, "userId">>
+  { payload: { channelId } }: PayloadAction<Omit<ResponseDeleteParticipant, "userId">>
 ) => {
-  const { channelId } = action.payload;
-  const { channelDetail, channels } = state.channel;
-  if (channelDetail?._id === channelId) state.channel.channelDetail = null;
+  if(!state.channelsDetail[channelId]) return;
 
-  state.channel.channels = channels.filter(({ _id }) => _id !== channelId);
+  delete state.channelsDetail[channelId]
+
+  state.currentChannelId = null
+
+  return state
 };
-
-export default deleteParticipant;

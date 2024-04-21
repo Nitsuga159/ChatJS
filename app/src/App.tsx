@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useContext, useEffect, useState } from 'react';
 import TitleBar from './components/TitleBar/TitleBar';
 import { ipcRenderer } from 'electron';
 import { useDispatch, useSelector } from 'react-redux';
@@ -16,7 +16,7 @@ import { COLORS } from './styles';
 import { userActions, userFetchs } from './redux/actions/user';
 import { failureNotification } from './helpers/notify';
 
-axios.defaults.baseURL = ENVS.BACKEND_URL || "http://localhost:3070";
+axios.defaults.baseURL = ENVS.BACKEND_URL;
 
 
 function App() {
@@ -26,6 +26,7 @@ function App() {
   const [loadingUser, setLoadingUser] = useState(false);
 
   useEffect(() => {
+
     setLoadingUser(true);
     getUserToken().then(async token => {
       if (!token) return navigate('/auth')
@@ -33,9 +34,9 @@ function App() {
       addLoader(COLORS.FOLLY);
 
       try {
-        const { results } = await userFetchs.info(token);
+        const { result } = await userFetchs.info(token);
 
-        dispatch(userActions.login({ ...results, accessToken: token }))
+        dispatch(userActions.login({ ...result, accessToken: token }))
       } catch (e: any) {
         navigate('/auth')
         failureNotification(e.response.data.message);

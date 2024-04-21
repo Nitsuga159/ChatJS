@@ -39,8 +39,8 @@ export class ChannelChatService {
     );
 
     return {
-      continue: messagesChannelChat.length === ChannelChatModelService.PER_PAGE_CHANNEL_CHAT,
-      messages: messagesChannelChat,
+      canContinue: messagesChannelChat.length === ChannelChatModelService.PER_PAGE_CHANNEL_CHAT,
+      items: messagesChannelChat,
     };
   }
 

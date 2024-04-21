@@ -1,9 +1,9 @@
-import { InitialStateFriends } from "@/redux/slices/friend/type";
+import { Friend, InitialStateFriends } from "@/redux/slices/friend/type";
 import { PayloadAction } from "@reduxjs/toolkit";
 
-export const setCurrentChatId = (
+export const setCurrentFriend = (
   state: InitialStateFriends,
-  action: PayloadAction<string | null>
+  action: PayloadAction<Friend | null>
 ) => {
-  state.currentChatId = action.payload;
+  state.currentFriend = action.payload;
 };

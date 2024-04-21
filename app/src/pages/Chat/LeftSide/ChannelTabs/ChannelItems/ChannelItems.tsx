@@ -3,8 +3,7 @@ import { IoIosArrowForward, IoIosArrowDown } from 'react-icons/io/index'
 import s from './GroupChannel.module.css';
 import { AppDispatch } from "@/redux/store";
 import { useDispatch, useSelector } from "react-redux";
-import { getChannelState } from "@/redux/slices/channel";
-import { channelActions } from "@/redux/actions/channel";
+import { actions as channelActions, getChannelState } from "@/redux/slices/channel";
 import { getGeneralState } from "@/redux/slices/general";
 import { ChatMode } from "@/redux/slices/general/type";
 import { generalActions } from "@/redux/actions/general";
@@ -29,11 +28,11 @@ export default function ChannelItems(
     }, [currentChatId]);
 
   return (
-    <div style={{ margin: ".2rem 0" }}>
+    <div style={{ margin: ".2rem 0", padding: ".8rem .8rem 0 .8rem" }}>
       <p
         className={s.title}
         onClick={() => setOpenGroupChannel(prev => !prev)}
-      >{openGroupChannel ? <IoIosArrowDown /> : <IoIosArrowForward />} {title.toUpperCase()}</p>
+      >{openGroupChannel ? <IoIosArrowDown /> : <IoIosArrowForward />}&emsp;{title.toUpperCase()}</p>
       <div>
         {
           openGroupChannel && channels.map(({ name, _id }) => (

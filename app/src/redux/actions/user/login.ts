@@ -5,7 +5,7 @@ import axios from "axios";
 const login = async (user: {
   mail: string;
   password: string;
-}): Promise<{ status: number, results: { accessToken: string }, message: string }> => {
+}): Promise<{ status: number, result: { accessToken: string }, message: string }> => {
   await new Promise<void>((resolve) =>
     setTimeout(() => {
       resolve();

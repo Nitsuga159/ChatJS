@@ -2,7 +2,6 @@ import { Friend, FriendMessage } from "@/redux/slices/friend/type";
 import { DirectionRequest, TimeRequest } from "../channel/type";
 
 interface DefaultRequestFriend {
-  accessToken: string;
   friendId: string;
 }
 
@@ -39,7 +38,7 @@ export interface RequestGetFriendMessages extends DefaultRequestFriend {
 
 export interface ResponseGetFriendMessage {
   continue: boolean;
-  results: FriendMessage[];
+  result: FriendMessage[];
 }
 
 export interface SetGetFriendMessage extends ResponseGetFriendMessage {
@@ -49,7 +48,6 @@ export interface SetGetFriendMessage extends ResponseGetFriendMessage {
 //ADD_FRIEND_MESSAGE
 
 export interface RequestAddFriendMessage extends DefaultRequestFriend {
-  clientId: string;
   value: string;
   photos?: string[];
 }

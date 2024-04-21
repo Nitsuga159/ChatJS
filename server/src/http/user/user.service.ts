@@ -78,8 +78,8 @@ export class UsersService {
     const users = await this.userModelService.find(lastId, _fields);
     
     return {
-      continue: users.length === UserModelService.PER_PAGE_USER,
-      result: users,
+      canContinue: users.length === UserModelService.PER_PAGE_USER,
+      items: users,
     };
   }
 
@@ -119,7 +119,7 @@ export class UsersService {
     lastId: string,
     userId: Types.ObjectId,
     fields: {} = {}
-  ): Promise<{ users: UserDocument[]; continue: boolean }> {
+  ): Promise<{ items: UserDocument[]; canContinue: boolean }> {
     const users = await this.userModelService.findByUsername(
       username,
       lastId,
@@ -128,8 +128,8 @@ export class UsersService {
     );
 
     return {
-      users,
-      continue: users.length === UserModelService.PER_PAGE_USER,
+      items: users,
+      canContinue: users.length === UserModelService.PER_PAGE_USER,
     };
   }
 }

@@ -2,13 +2,13 @@ import io, { Socket } from "socket.io-client";
 
 export interface SimpleUser {
   _id: string;
+  description: string;
   username: string;
   color: string;
   photo: string | null;
 }
 
 export interface User extends SimpleUser {
-  description: string;
   mail: string;
   accessToken: string;
 }

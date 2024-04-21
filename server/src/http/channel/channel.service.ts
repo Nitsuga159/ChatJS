@@ -1,3 +1,4 @@
+import fs from 'fs'
 import { HttpStatus, Injectable } from '@nestjs/common';
 import { Types } from 'mongoose';
 import { ChannelModelService } from 'src/database/channel-model/channel-model.service';
@@ -9,6 +10,8 @@ import { Ws } from 'src/ws/ws.gateway';
 import { ChannelChatModelService } from 'src/database/channel-chat-model/channel-chat-model.service';
 import { QueryFilterProps } from 'src/utils/queryFilter';
 import { ChannelQuery } from './channel.body';
+import { CloudinaryService } from '../cloudinary/cloudinary.service';
+import { Readable } from 'stream';
 
 @Injectable()
 export class ChannelService {
@@ -17,6 +20,7 @@ export class ChannelService {
     private readonly channelChatModelService: ChannelChatModelService,
     private readonly userModelService: UserModelService,
     private readonly wsGateway: Ws,
+    private readonly cloudinaryService: CloudinaryService
   ) {}
 
   async findAll(
@@ -50,17 +54,23 @@ export class ChannelService {
     name: string;
     admin: Types.ObjectId;
     description?: string;
-    photo?: string;
+    photo?: Express.Multer.File;
   }): Promise<ChannelDocument> {
     const countUserChannels = await this.channelModelService.countUserChannel(
       data.admin,
     );
 
+    let photo: string | undefined;
+
+    if(data.photo) {
+      photo = await this.cloudinaryService.uploadImage(Readable.from(data.photo.buffer))
+    }
+
     if (countUserChannels === 5) {
       throw new DefaultHttpException({ status: HttpStatus.FORBIDDEN, message: 'Channel limit exceeded' })
     }
 
-    return await this.channelModelService.create(data);
+    return await this.channelModelService.create({ ...data, photo });
   }
 
   async updateChat(channelId: Types.ObjectId, adminId: Types.ObjectId, chatId: Types.ObjectId, data: any) {

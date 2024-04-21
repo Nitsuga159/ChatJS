@@ -96,3 +96,11 @@ export const Username = styled.p`
   overflow: hidden;
   text-overflow: ellipsis;
 `;
+
+export const SearchLoader = styled.div`
+  display: flex; 
+  width: 100%; 
+  height: 100%; 
+  justify-content: center;
+  align-items: center
+`

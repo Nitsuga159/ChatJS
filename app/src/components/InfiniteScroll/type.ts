@@ -1,4 +1,5 @@
 import { DirectionRequest, TimeRequest } from "@/redux/actions/channel/type";
+import { DefaultAPI } from "../Providers/http/api-interface";
 
 export interface InfiniteScrollProps {
   id?: string;
@@ -11,12 +12,11 @@ export interface InfiniteScrollProps {
   maxVirtualItems?: number
   giveRef?: (ref: HTMLElement | null) => void;
   renderItem: (data: any, index: number, context: any[]) => JSX.Element;
-  fetchItems: (time: TimeRequest, to: DirectionRequest, lastId: string) => Promise<{ continue: boolean, newItems: any[] } | undefined>;
+  api: DefaultAPI
 }
 
 export interface IRefsInfiniteScroll {
   infiniteScrollRef: HTMLDivElement | null;
-  lastScrolls: { [key: string]: number };
   scrollItemsKey?: string
   lastItemId?: string;
   timeout: number;

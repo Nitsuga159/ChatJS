@@ -48,7 +48,7 @@ export class NotificationModelService {
   async create(data: NotificationRequest, fields: {} = {}): Promise<NotificationDocument> {
     const createdNotification = new this.notificationModel(data, fields);
 
-    return (await createdNotification.save()).toObject();
+    return (await (await createdNotification.save()).populate('sender', 'username photo color')).toObject();
   }
 
   async delete(

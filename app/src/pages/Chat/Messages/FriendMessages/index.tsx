@@ -1,54 +1,29 @@
-import { failureNotification } from "@/helpers/notify";
 import { getUserState } from "@/redux/slices/user";
-import { AppDispatch } from "@/redux/store";
-import { DefaultResponse } from "@/types/const.type";
-import { useCallback } from "react";
-import { useDispatch, useSelector } from "react-redux";
+import { useContext } from "react";
+import { useSelector } from "react-redux";
 import Messages from "..";
-import { getFriendState } from "@/redux/slices/friend";
-import { friendActions, friendFetchs } from "@/redux/actions/friend";
-import { v4 as uuidV4 } from "uuid";
-import { RequestAddFriendMessage } from "@/redux/actions/friend/type";
 import setCloudinaryImages from "@/helpers/setCloudinaryImages";
+import { CreateFriendMessageAPI, DeleteFriendMessagesAPI, GetFriendMessagesAPI } from "@/components/Providers/http/friend-chat-api-interface";
+import { HttpClientContext } from "@/components/Providers/http";
 
 export default function FriendMessages({ chatId }: { chatId: string; }) {
-  const dispatch: AppDispatch = useDispatch();
-  const { chats } = useSelector(getFriendState);
+  const httpClient = useContext(HttpClientContext)!
   const accessToken = useSelector(getUserState).user?.accessToken!;
-
-  const chat = chats[chatId!] || { continue: true, lastId: null, messages: [] };
-
-  const getMessages = useCallback(async () => {
-    const { lastId } = chat
-    const { ok, data, error } =
-      (await friendFetchs.getMessages({ friendId: chatId, lastId, accessToken, })) as any as DefaultResponse;
-
-    if (ok) dispatch(friendActions.getMessages({ ...data, friendId: chatId }));
-    else failureNotification(error!);
-  }, [chat, chatId]);
 
   const setMessage = async (value: string, files: File[]) => {
     if (!value.length && !files.length) return;
 
-    let newMessage: RequestAddFriendMessage = {
-      accessToken,
-      friendId: chatId,
-      clientId: uuidV4(),
-      value: value ? value : ''
-    };
-
-    //dispatch(friendActions.setMessagesToSend(newMessage));
-
     try {
-      let updatedMessage = {
-        ...newMessage,
-        photos: files.length ? await setCloudinaryImages({ images: files, accessToken }) : []
-      };
-
-      const { ok } = await friendFetchs.addMessage(updatedMessage) as any as DefaultResponse;
-
-      if (!ok) throw new Error();
-
+      await httpClient(
+        new CreateFriendMessageAPI({ 
+          friendId: chatId, data: {
+            message: { 
+              value: value || '', 
+              photos: files.length ? await setCloudinaryImages({ images: files, accessToken }) : [] 
+            } 
+          }
+        })
+      )
     } catch (e: any) {
       //dispatch(channelActions.errorMessageToSend(newMessage.clientId))
     }
@@ -56,7 +31,7 @@ export default function FriendMessages({ chatId }: { chatId: string; }) {
 
   const deleteMessages = async (ids: string[]) => {
     try {
-      await friendFetchs.deleteMessages({ accessToken, friendId: chatId, ids });
+      await httpClient(new DeleteFriendMessagesAPI({ friendId: chatId, ids }))
 
     } catch (e: any) {
       console.log("error al eliminar mensajes: ", e)
@@ -65,11 +40,10 @@ export default function FriendMessages({ chatId }: { chatId: string; }) {
 
   return (
     <Messages
-      chat={chat}
-      getMessages={getMessages}
+      api={new GetFriendMessagesAPI({ friendId: chatId })}
       setMessage={setMessage}
       deleteMessages={deleteMessages}
-      resendMessage={() => { }}
+      scrollItemsKey={chatId}
     />
   )
 }

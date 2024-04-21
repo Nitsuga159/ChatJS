@@ -5,6 +5,7 @@ import { ILabelItem } from "./type";
 export const ItemSelectionContainer = styled.div<{
   label: ILabelItem;
   name: string;
+  isSelected: boolean
 }>`
   ${PRE_VALUES.FLEX};
   position: relative;
@@ -18,6 +19,8 @@ export const ItemSelectionContainer = styled.div<{
   transition: all 0.3s ease;
   cursor: pointer;
   overflow: hidden;
+  box-shadow: 0px 0px 5px ${COLORS.BLACK};
+  ${({ isSelected }) => isSelected && ({ borderRadius: "8px", border: `2px solid ${COLORS.FOLLY}` })};
   &:hover {
     border-radius: 8px;
   }

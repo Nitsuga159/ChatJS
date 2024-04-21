@@ -71,7 +71,7 @@ export default function RegisterForm({
 
       const data = await userFetchs.createCodeVerification(inputs.mail);
 
-      if (data.results.success) {
+      if (data.result.success) {
         handleRegisterFormSubmit(inputs);
       }
     } catch (e: any) {

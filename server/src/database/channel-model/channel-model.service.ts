@@ -82,11 +82,11 @@ export class ChannelModelService {
     let query = this.channelModel
       .find({ participants: { $in: userId } }, queryProps.fields || {})
 
-    const channels = (await queryFilter({ query, limit: ChannelModelService.PER_PAGE_CHANNELS, ...queryProps })).map(channel => this.mapChannel(userId, channel));
+    const items = (await queryFilter({ query, limit: ChannelModelService.PER_PAGE_CHANNELS, ...queryProps })).map(channel => this.mapChannel(userId, channel));
 
     return {
-      continue: channels.length === ChannelModelService.PER_PAGE_CHANNELS,
-      channels,
+      canContinue: items.length === ChannelModelService.PER_PAGE_CHANNELS,
+      items,
     };
   }
 

@@ -35,8 +35,8 @@ export type ChangePasswordType = {
 };
 
 export type FindUserResponse = {
-  continue: boolean;
-  result: UserDocument[];
+  canContinue: boolean;
+  items: UserDocument[];
 };
 
 export enum Colors {

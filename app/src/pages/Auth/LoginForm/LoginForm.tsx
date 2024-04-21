@@ -1,6 +1,6 @@
 import { SetStateAction, useState } from 'react';
 import { Mode } from '@/types/auth.type';
-import { useDispatch } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import { AppDispatch } from '@/redux/store';
 import validations from '../../../validations/user.validation'
 import s from './LoginForm.module.css';
@@ -10,6 +10,9 @@ import { addLoader, removeLoader } from '@/helpers/loaderFullScreen/loaderFullSc
 import { userActions, userFetchs } from '@/redux/actions/user';
 import { failureNotification } from '@/helpers/notify';
 import { setUserToken } from '@/ipc-electron';
+import { getLanguage } from '@/redux/slices/general';
+import t from '@/languages';
+import { LOGIN_TEXTS } from '@/languages/texts/login.text';
 
 type LoginFormProps = {
   setMode: (mode: SetStateAction<Mode>) => void,
@@ -26,6 +29,7 @@ export default function LoginForm({ setMode }: LoginFormProps) {
     password: validations.password("")
   });
   const [showPassword, setShowPassword] = useState<boolean>(false);
+  const language = useSelector(getLanguage)
 
   const handleFormChange = (value: string, name: string) => {
     setInputs(inputs => ({ ...inputs, [name]: value }));
@@ -47,11 +51,11 @@ export default function LoginForm({ setMode }: LoginFormProps) {
     addLoader(COLORS.FOLLY);
 
     try {
-      const { results: data  } = await userFetchs.login(inputs);
+      const { result: data  } = await userFetchs.login(inputs);
 
       console.log(data)
 
-      const { results: userData  } = await userFetchs.info(data.accessToken);
+      const { result: userData  } = await userFetchs.info(data.accessToken);
 
       dispatch(userActions.login({ ...userData, accessToken: data.accessToken }));
       setUserToken(data.accessToken)
@@ -65,7 +69,7 @@ export default function LoginForm({ setMode }: LoginFormProps) {
 
   return (
     <div className={s.loginContainer}>
-      <h4 className={s.title}>WELCOME</h4>
+      <h4 className={s.title}>{t(language, LOGIN_TEXTS.WELCOME)}</h4>
       <Field
         name='mail'
         type='text'
@@ -89,12 +93,12 @@ export default function LoginForm({ setMode }: LoginFormProps) {
           checked={showPassword}
           onChange={() => setShowPassword(!showPassword)}
         />
-        <label htmlFor='show-password' className={s.showPasswordLabel}>show password ?</label>
+        <label htmlFor='show-password' className={s.showPasswordLabel}>{t(language, LOGIN_TEXTS.SEE_PASSWORD)}</label>
       </div>
       <p className={s.text}>
-        You don't have an account ? <a onClick={() => setMode(Mode.REGISTER)} className={s.signUp}>Sign up here</a>
+        You don't have an account ? <a onClick={() => setMode(Mode.REGISTER)} className={s.signUp}>{t(language, LOGIN_TEXTS.SIGN_UP)}</a>
       </p>
-      <button onClick={handleLogin} className={s.submitButton}>Login</button>
+      <button onClick={handleLogin} className={s.submitButton}>{t(language, LOGIN_TEXTS.LOGIN)}</button>
     </div>
   );
 }

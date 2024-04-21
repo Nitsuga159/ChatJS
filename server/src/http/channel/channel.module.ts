@@ -6,6 +6,7 @@ import { UserModelModule } from 'src/database/user-model/user-model.module';
 import { WsModule } from 'src/ws/ws.module';
 import { NotificationModelModule } from 'src/database/notification-model/notification-model.module';
 import { ChannelChatModelModule } from 'src/database/channel-chat-model/channel-chat-model.module';
+import { CloudinaryModule } from '../cloudinary/cloudinary.module';
 
 @Module({
   imports: [
@@ -14,6 +15,7 @@ import { ChannelChatModelModule } from 'src/database/channel-chat-model/channel-
     UserModelModule,
     NotificationModelModule,
     WsModule,
+    CloudinaryModule
   ],
   controllers: [ChannelController],
   providers: [ChannelService],

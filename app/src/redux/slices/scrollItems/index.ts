@@ -79,6 +79,20 @@ const scrollItemsSlice = createSlice({
         }
       }
     },
+    update(
+      state: InitialStateScrollItems, 
+      { payload: { id, itemId, onFound } }: PayloadAction<{ id: string, itemId: string, onFound: (v: any) => any }>
+    ) {
+      const scrollItems = state[id]
+
+      if(!scrollItems) return state;
+
+      const index = scrollItems.items.findIndex(value => value[ENVS.KEY_ID] === itemId)
+
+      if(index === -1 ) return state;
+
+      scrollItems.items[index] = onFound(scrollItems.items[index])
+    },
     removeOne(
       state: InitialStateScrollItems, 
       action: PayloadAction<{ id: string, keyId: string, valueId: any }>
